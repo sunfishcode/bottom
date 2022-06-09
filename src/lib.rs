@@ -400,7 +400,7 @@ pub fn create_collection_thread(
     app_config_fields: &app::AppConfigFields, filters: app::DataFilters,
     used_widget_set: UsedWidgets,
 ) -> std::thread::JoinHandle<()> {
-    let temp_type = app_config_fields.temperature_type.clone();
+    let temp_type = app_config_fields.temperature_type;
     let use_current_cpu_total = app_config_fields.use_current_cpu_total;
     let show_average_cpu = app_config_fields.show_average_cpu;
     let update_rate_in_milliseconds = app_config_fields.update_rate_in_milliseconds;
@@ -433,7 +433,7 @@ pub fn create_collection_thread(
                         data_state.data.cleanup();
                     }
                     ThreadControlEvent::UpdateConfig(app_config_fields) => {
-                        data_state.set_temperature_type(app_config_fields.temperature_type.clone());
+                        data_state.set_temperature_type(app_config_fields.temperature_type);
                         data_state
                             .set_use_current_cpu_total(app_config_fields.use_current_cpu_total);
                         data_state.set_show_average_cpu(app_config_fields.show_average_cpu);

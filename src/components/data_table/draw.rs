@@ -269,7 +269,7 @@ pub fn get_start_position(
 }
 
 /// Constructs the table header.
-fn build_header<'a>(columns: &'a [DataColumn]) -> Row<'a> {
+fn build_header(columns: &[DataColumn]) -> Row<'_> {
     Row::new(columns.iter().filter_map(|c| {
         if c.calculated_width == 0 {
             None
