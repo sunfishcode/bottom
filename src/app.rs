@@ -2017,7 +2017,7 @@ impl App {
                     {
                         temp_widget_state
                             .table
-                            .set_scroll_last(self.converted_data.disk_data.len());
+                            .set_scroll_last(self.converted_data.temp_data.len());
                     }
                 }
                 BottomWidgetType::Disk => {
