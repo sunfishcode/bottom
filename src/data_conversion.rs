@@ -2,6 +2,7 @@
 //! can actually handle.
 
 use crate::app::data_farmer::DataCollection;
+use crate::app::data_harvester::cpu::CpuDataType;
 use crate::app::data_harvester::temperature::TemperatureType;
 use crate::app::widgets::{DiskWidgetData, TempWidgetData};
 use crate::components::text_table::CellContent;
@@ -60,14 +61,17 @@ pub struct ConvertedNetworkData {
     // mean_tx: f64,
 }
 
-#[derive(Clone, Default, Debug)]
-pub struct ConvertedCpuData {
-    pub cpu_name: String,
-    pub short_cpu_name: String,
+#[derive(Clone, Debug, Copy)]
+pub enum CpuWidgetEntry {
+    All,
+    Entry(CpuDataType, f64),
+}
+
+#[derive(Clone, Debug)]
+pub struct CpuWidgetData {
+    pub entry_type: CpuWidgetEntry,
     /// Tuple is time, value
     pub cpu_data: Vec<Point>,
-    /// Represents the value displayed on the legend.
-    pub legend_value: String,
 }
 
 #[derive(Default)]
@@ -93,7 +97,7 @@ pub struct ConvertedData {
     pub mem_data: Vec<Point>, // TODO: Switch this and all data points over to a better data structure...
     pub swap_data: Vec<Point>,
     pub load_avg_data: [f32; 3],
-    pub cpu_data: Vec<ConvertedCpuData>,
+    pub cpu_data: Vec<CpuWidgetData>,
     pub battery_data: Vec<ConvertedBatteryData>,
 }
 
@@ -133,79 +137,56 @@ impl ConvertedData {
 
         self.temp_data.shrink_to_fit();
     }
-}
 
-pub fn convert_cpu_data_points(
-    current_data: &data_farmer::DataCollection, existing_cpu_data: &mut Vec<ConvertedCpuData>,
-) {
-    let current_time = if let Some(frozen_instant) = current_data.frozen_instant {
-        frozen_instant
-    } else {
-        current_data.current_instant
-    };
-
-    // Initialize cpu_data_vector if the lengths don't match...
-    if let Some((_time, data)) = &current_data.timed_data_vec.last() {
-        if data.cpu_data.len() + 1 != existing_cpu_data.len() {
-            *existing_cpu_data = vec![ConvertedCpuData {
-                cpu_name: "All".to_string(),
-                short_cpu_name: "".to_string(),
-                cpu_data: vec![],
-                legend_value: String::new(),
-            }];
-
-            existing_cpu_data.extend(
-                data.cpu_data
-                    .iter()
-                    .enumerate()
-                    .map(|(itx, cpu_usage)| ConvertedCpuData {
-                        cpu_name: if let Some(cpu_harvest) = current_data.cpu_harvest.get(itx) {
-                            if let Some(cpu_count) = cpu_harvest.cpu_count {
-                                format!("{}{}", cpu_harvest.cpu_prefix, cpu_count)
-                            } else {
-                                cpu_harvest.cpu_prefix.to_string()
-                            }
-                        } else {
-                            String::default()
-                        },
-                        short_cpu_name: if let Some(cpu_harvest) = current_data.cpu_harvest.get(itx)
-                        {
-                            if let Some(cpu_count) = cpu_harvest.cpu_count {
-                                cpu_count.to_string()
-                            } else {
-                                cpu_harvest.cpu_prefix.to_string()
-                            }
-                        } else {
-                            String::default()
-                        },
-                        legend_value: format!("{:.0}%", cpu_usage.round()),
-                        cpu_data: vec![],
-                    })
-                    .collect::<Vec<ConvertedCpuData>>(),
-            );
+    pub fn convert_cpu_data_points(&mut self, current_data: &data_farmer::DataCollection) {
+        let current_time = if let Some(frozen_instant) = current_data.frozen_instant {
+            frozen_instant
         } else {
-            existing_cpu_data
-                .iter_mut()
-                .skip(1)
-                .zip(&data.cpu_data)
-                .for_each(|(cpu, cpu_usage)| {
-                    cpu.cpu_data = vec![];
-                    cpu.legend_value = format!("{:.0}%", cpu_usage.round());
-                });
-        }
-    }
+            current_data.current_instant
+        };
 
-    for (time, data) in &current_data.timed_data_vec {
-        let time_from_start: f64 = (current_time.duration_since(*time).as_millis() as f64).floor();
+        // Initialize cpu_data_vector if the lengths don't match...
+        if let Some((_time, data)) = &current_data.timed_data_vec.last() {
+            if data.cpu_data.len() + 1 != self.cpu_data.len() {
+                self.cpu_data = vec![CpuWidgetData {
+                    entry_type: CpuWidgetEntry::All,
+                    cpu_data: vec![],
+                }];
 
-        for (itx, cpu) in data.cpu_data.iter().enumerate() {
-            if let Some(cpu_data) = existing_cpu_data.get_mut(itx + 1) {
-                cpu_data.cpu_data.push((-time_from_start, *cpu));
+                self.cpu_data.extend(
+                    data.cpu_data
+                        .iter()
+                        .zip(&current_data.cpu_harvest)
+                        .map(|(cpu_usage, data)| CpuWidgetData {
+                            entry_type: CpuWidgetEntry::Entry(data.data_type, *cpu_usage),
+                            cpu_data: vec![],
+                        })
+                        .collect::<Vec<CpuWidgetData>>(),
+                );
+            } else {
+                self.cpu_data
+                    .iter_mut()
+                    .skip(1)
+                    .zip(&data.cpu_data)
+                    .for_each(|(cpu, cpu_usage)| {
+                        cpu.cpu_data = vec![];
+                    });
             }
         }
 
-        if *time == current_time {
-            break;
+        for (time, data) in &current_data.timed_data_vec {
+            let time_from_start: f64 =
+                (current_time.duration_since(*time).as_millis() as f64).floor();
+
+            for (itx, cpu) in data.cpu_data.iter().enumerate() {
+                if let Some(cpu_data) = self.cpu_data.get_mut(itx + 1) {
+                    cpu_data.cpu_data.push((-time_from_start, *cpu));
+                }
+            }
+
+            if *time == current_time {
+                break;
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ use tui::widgets::Row;
 
 use crate::{
     app::{data_harvester::temperature::TemperatureType, AppConfigFields},
-    components::data_table::{DataColumn, DataTable, DataTableProps, ToDataRow},
+    components::data_table::{DataColumn, DataTable, DataTableProps, Styling, ToDataRow},
     utils::gen_util::truncate_text,
 };
 
@@ -18,20 +18,20 @@ pub struct TempWidgetData {
 
 impl TempWidgetData {
     pub fn temperature(&self) -> KString {
-        concat_string!(
-            self.temperature_value.to_string(),
-            match self.temperature_type {
-                TemperatureType::Celsius => "°C",
-                TemperatureType::Kelvin => "K",
-                TemperatureType::Fahrenheit => "°F",
-            }
-        )
-        .into()
+        let temp_val = self.temperature_value.to_string();
+        let temp_type = match self.temperature_type {
+            TemperatureType::Celsius => "°C",
+            TemperatureType::Kelvin => "K",
+            TemperatureType::Fahrenheit => "°F",
+        };
+        concat_string!(temp_val, temp_type).into()
     }
 }
 
 impl ToDataRow for TempWidgetData {
-    fn to_data_row<'a>(&'a self, columns: &[DataColumn]) -> Row<'a> {
+    fn to_data_row<'a>(
+        &'a self, columns: &[DataColumn], _styling: &Styling, _index: usize,
+    ) -> Row<'a> {
         Row::new(vec![
             truncate_text(
                 self.sensor.clone().into_cow_str(),

@@ -311,7 +311,7 @@ pub fn update_data(app: &mut App) {
         }
     }
 
-    // FIXME: I should really test that this works, it was broken for a long time.
+    // FIXME: I should really test that this works with different adds/removes, it was broken for a long time.
     for disk in app.disk_state.widget_states.values_mut() {
         disk.table
             .update_num_entries(app.converted_data.disk_data.len());
@@ -322,8 +322,10 @@ pub fn update_data(app: &mut App) {
             .update_num_entries(app.converted_data.temp_data.len());
     }
 
+    // FIXME: Make this less terrible.
     if app.cpu_state.force_update.is_some() {
-        convert_cpu_data_points(&app.data_collection, &mut app.converted_data.cpu_data);
+        app.converted_data
+            .convert_cpu_data_points(&app.data_collection);
         app.converted_data.load_avg_data = app.data_collection.load_avg_harvest;
         app.cpu_state.force_update = None;
     }

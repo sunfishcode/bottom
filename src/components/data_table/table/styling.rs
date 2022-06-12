@@ -8,4 +8,5 @@ pub struct Styling {
     pub text_style: Style,
     pub highlighted_text_style: Style,
     pub title_style: Style,
+    pub row_styles: Vec<Style>,
 }

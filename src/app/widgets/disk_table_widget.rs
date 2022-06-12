@@ -5,7 +5,7 @@ use tui::widgets::Row;
 
 use crate::{
     app::AppConfigFields,
-    components::data_table::{DataColumn, DataTable, DataTableProps, ToDataRow},
+    components::data_table::{DataColumn, DataTable, DataTableProps, Styling, ToDataRow},
     utils::gen_util::{get_decimal_bytes, truncate_text},
 };
 
@@ -51,8 +51,11 @@ impl DiskWidgetData {
     }
 }
 
+// FIXME: Rename these to be consistent.
 impl ToDataRow for DiskWidgetData {
-    fn to_data_row<'a>(&'a self, columns: &[DataColumn]) -> Row<'a> {
+    fn to_data_row<'a>(
+        &'a self, columns: &[DataColumn], _styling: &Styling, _index: usize,
+    ) -> Row<'a> {
         Row::new(vec![
             truncate_text(
                 self.name.clone().into_cow_str(),
@@ -100,11 +103,11 @@ impl ToDataRow for DiskWidgetData {
     }
 }
 
-pub struct DiskWidgetState {
+pub struct DiskTableWidget {
     pub table: DataTable<DiskWidgetData>,
 }
 
-impl DiskWidgetState {
+impl DiskTableWidget {
     pub fn new(config: &AppConfigFields) -> Self {
         const COLUMNS: [DataColumn; 7] = [
             DataColumn::soft("Disk", Some(0.2)),

@@ -29,7 +29,7 @@ use super::{ColumnWidthBounds, DataColumn, DataTable, ScrollDirection, ToDataRow
 impl<RowType: ToDataRow> DataTable<RowType> {
     /// Generates a title for the [`TextTable`] widget, given the available space.
     fn generate_title<'a>(
-        &self, draw_info: &'a DrawInfo, pos: usize, total: usize,
+        &self, draw_info: &'a DrawInfo, current_index: usize, total_items: usize,
     ) -> Option<Spans<'a>> {
         self.props.title.as_ref().map(|title| {
             let draw_loc = draw_info.loc;
@@ -41,8 +41,9 @@ impl<RowType: ToDataRow> DataTable<RowType> {
             };
 
             let title = if self.props.show_table_scroll_position {
-                let title_string =
-                    concat_string!(title, "(", pos.to_string(), " of ", total.to_string(), ") ");
+                let pos = current_index.to_string();
+                let tot = total_items.to_string();
+                let title_string = concat_string!(title, "(", pos, " of ", tot, ") ");
 
                 if title_string.len() + 2 <= draw_loc.width.into() {
                     title_string
@@ -55,13 +56,10 @@ impl<RowType: ToDataRow> DataTable<RowType> {
 
             if draw_info.is_expanded() {
                 let title_base = concat_string!(title, "── Esc to go back ");
-                let esc = concat_string!(
-                    "─",
-                    "─".repeat(usize::from(draw_loc.width).saturating_sub(
-                        UnicodeSegmentation::graphemes(title_base.as_str(), true).count() + 2
-                    )),
-                    "─ Esc to go back "
-                );
+                let lines = "─".repeat(usize::from(draw_loc.width).saturating_sub(
+                    UnicodeSegmentation::graphemes(title_base.as_str(), true).count() + 2,
+                ));
+                let esc = concat_string!("─", lines, "─ Esc to go back ");
                 Spans::from(vec![
                     Span::styled(title, title_style),
                     Span::styled(esc, border_style),
@@ -177,7 +175,9 @@ impl<RowType: ToDataRow> DataTable<RowType> {
                         self.state.current_scroll_position.saturating_sub(start),
                     ));
 
-                    data[start..end].iter().map(|row| row.to_data_row(columns))
+                    data[start..end].iter().enumerate().map(move |(itx, row)| {
+                        row.to_data_row(columns, &draw_info.styling, start + itx)
+                    })
                 };
 
                 let headers = build_header(columns)

@@ -22,6 +22,7 @@ impl Painter {
                 text_style: self.colours.text_style,
                 highlighted_text_style: self.colours.currently_selected_text_style,
                 title_style: self.colours.widget_title_style,
+                row_styles: vec![],
             };
             let draw_info = DrawInfo {
                 styling,

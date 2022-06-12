@@ -290,25 +290,13 @@ impl App {
         // Allow usage whilst only in processes
 
         if !self.ignore_normal_keybinds() {
-            match self.current_widget.widget_type {
-                BottomWidgetType::Cpu => {
-                    if let Some(cpu_widget_state) = self
-                        .cpu_state
-                        .get_mut_widget_state(self.current_widget.widget_id)
-                    {
-                        cpu_widget_state.is_multi_graph_mode =
-                            !cpu_widget_state.is_multi_graph_mode;
-                    }
+            if let BottomWidgetType::Proc = self.current_widget.widget_type {
+                if let Some(proc_widget_state) = self
+                    .proc_state
+                    .get_mut_widget_state(self.current_widget.widget_id)
+                {
+                    proc_widget_state.toggle_tab();
                 }
-                BottomWidgetType::Proc => {
-                    if let Some(proc_widget_state) = self
-                        .proc_state
-                        .get_mut_widget_state(self.current_widget.widget_id)
-                    {
-                        proc_widget_state.toggle_tab();
-                    }
-                }
-                _ => {}
             }
         }
     }
@@ -1972,8 +1960,7 @@ impl App {
                         .cpu_state
                         .get_mut_widget_state(self.current_widget.widget_id - 1)
                     {
-                        cpu_widget_state.table_state.current_scroll_position = 0;
-                        cpu_widget_state.table_state.scroll_direction = ScrollDirection::Up;
+                        cpu_widget_state.table.set_scroll_first();
                     }
                 }
 
@@ -2037,11 +2024,9 @@ impl App {
                         .cpu_state
                         .get_mut_widget_state(self.current_widget.widget_id - 1)
                     {
-                        let cap = self.converted_data.cpu_data.len();
-                        if cap > 0 {
-                            cpu_widget_state.table_state.current_scroll_position = cap - 1;
-                            cpu_widget_state.table_state.scroll_direction = ScrollDirection::Down;
-                        }
+                        cpu_widget_state
+                            .table
+                            .set_scroll_last(self.converted_data.cpu_data.len());
                     }
                 }
                 _ => {}
@@ -2100,8 +2085,8 @@ impl App {
             .get_mut(&(self.current_widget.widget_id - 1))
         {
             cpu_widget_state
-                .table_state
-                .update_position(num_to_change_by, self.converted_data.cpu_data.len());
+                .table
+                .update_scroll_position(num_to_change_by, self.converted_data.cpu_data.len());
         }
     }
 
@@ -2654,7 +2639,7 @@ impl App {
                                         .get_widget_state(self.current_widget.widget_id - 1)
                                     {
                                         if let Some(visual_index) =
-                                            cpu_widget_state.table_state.table_state.selected()
+                                            cpu_widget_state.table.state.table_state.selected()
                                         {
                                             self.change_cpu_legend_position(
                                                 offset_clicked_entry as i64 - visual_index as i64,

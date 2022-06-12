@@ -197,13 +197,10 @@ fn main() -> Result<()> {
                             app.converted_data.swap_labels = swap_labels;
                         }
 
+                        // CPU
                         if app.used_widgets.use_cpu {
-                            // CPU
-
-                            convert_cpu_data_points(
-                                &app.data_collection,
-                                &mut app.converted_data.cpu_data,
-                            );
+                            app.converted_data
+                                .convert_cpu_data_points(&app.data_collection);
                             app.converted_data.load_avg_data = app.data_collection.load_avg_harvest;
                         }
 

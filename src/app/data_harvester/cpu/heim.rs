@@ -18,10 +18,15 @@ cfg_if::cfg_if! {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
+pub enum CpuDataType {
+    Avg,
+    Cpu(usize),
+}
+
+#[derive(Debug, Clone)]
 pub struct CpuData {
-    pub cpu_prefix: String,
-    pub cpu_count: Option<usize>,
+    pub data_type: CpuDataType,
     pub cpu_usage: f64,
 }
 
@@ -73,8 +78,7 @@ pub async fn get_cpu_data_list(
                 let present_times = convert_cpu_times(&present);
                 new_cpu_times.push(present_times);
                 cpu_deque.push_back(CpuData {
-                    cpu_prefix: "CPU".to_string(),
-                    cpu_count: Some(itx),
+                    data_type: CpuDataType::Cpu(itx),
                     cpu_usage: calculate_cpu_usage_percentage(
                         convert_cpu_times(&past),
                         present_times,
@@ -83,8 +87,7 @@ pub async fn get_cpu_data_list(
             } else {
                 new_cpu_times.push((0.0, 0.0));
                 cpu_deque.push_back(CpuData {
-                    cpu_prefix: "CPU".to_string(),
-                    cpu_count: Some(itx),
+                    data_type: CpuDataType::Cpu(itx),
                     cpu_usage: 0.0,
                 });
             }
@@ -107,8 +110,7 @@ pub async fn get_cpu_data_list(
                         (
                             present_times,
                             CpuData {
-                                cpu_prefix: "CPU".to_string(),
-                                cpu_count: Some(itx),
+                                data_type: CpuDataType::Cpu(itx),
                                 cpu_usage: calculate_cpu_usage_percentage(
                                     (*past_cpu_work, *past_cpu_total),
                                     present_times,
@@ -119,8 +121,7 @@ pub async fn get_cpu_data_list(
                         (
                             (*past_cpu_work, *past_cpu_total),
                             CpuData {
-                                cpu_prefix: "CPU".to_string(),
-                                cpu_count: Some(itx),
+                                data_type: CpuDataType::Cpu(itx),
                                 cpu_usage: 0.0,
                             },
                         )
@@ -158,8 +159,7 @@ pub async fn get_cpu_data_list(
 
         *previous_average_cpu_time = Some(new_average_cpu_time);
         cpu_deque.push_front(CpuData {
-            cpu_prefix: "AVG".to_string(),
-            cpu_count: None,
+            data_type: CpuDataType::Avg,
             cpu_usage,
         })
     }

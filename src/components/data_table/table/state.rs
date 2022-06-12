@@ -4,6 +4,7 @@ use tui::widgets::TableState;
 pub enum ScrollDirection {
     // UP means scrolling up --- this usually DECREMENTS
     Up,
+
     // DOWN means scrolling down --- this usually INCREMENTS
     Down,
 }
@@ -14,7 +15,7 @@ impl Default for ScrollDirection {
     }
 }
 
-/// Internal state representation of a [`DataTable`].
+/// Internal state representation of a [`DataTable`](super::DataTable).
 pub struct DataTableState {
     /// The index from where to start displaying the rows.
     pub display_row_start_index: usize,

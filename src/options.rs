@@ -12,7 +12,7 @@ use std::{
 use crate::{
     app::{
         layout_manager::*,
-        widgets::{DiskWidgetState, ProcWidget, ProcWidgetMode, TempWidgetState},
+        widgets::{CpuWidgetState, DiskTableWidget, ProcWidget, ProcWidgetMode, TempWidgetState},
         *,
     },
     canvas::ColourScheme,
@@ -271,7 +271,7 @@ pub fn build_app(
     let mut net_state_map: HashMap<u64, NetWidgetState> = HashMap::new();
     let mut proc_state_map: HashMap<u64, ProcWidget> = HashMap::new();
     let mut temp_state_map: HashMap<u64, TempWidgetState> = HashMap::new();
-    let mut disk_state_map: HashMap<u64, DiskWidgetState> = HashMap::new();
+    let mut disk_state_map: HashMap<u64, DiskTableWidget> = HashMap::new();
     let mut battery_state_map: HashMap<u64, BatteryWidgetState> = HashMap::new();
 
     let autohide_timer = if autohide_time {
@@ -367,7 +367,11 @@ pub fn build_app(
                         Cpu => {
                             cpu_state_map.insert(
                                 widget.widget_id,
-                                CpuWidgetState::init(default_time_value, autohide_timer),
+                                CpuWidgetState::new(
+                                    &app_config_fields,
+                                    default_time_value,
+                                    autohide_timer,
+                                ),
                             );
                         }
                         Mem => {
@@ -407,7 +411,7 @@ pub fn build_app(
                         }
                         Disk => {
                             disk_state_map
-                                .insert(widget.widget_id, DiskWidgetState::new(&app_config_fields));
+                                .insert(widget.widget_id, DiskTableWidget::new(&app_config_fields));
                         }
                         Temp => {
                             temp_state_map

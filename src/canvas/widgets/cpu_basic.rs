@@ -4,7 +4,7 @@ use crate::{
     app::App,
     canvas::{drawing_utils::*, Painter},
     constants::*,
-    data_conversion::ConvertedCpuData,
+    data_conversion::CpuWidgetData,
 };
 
 use tui::{
@@ -21,7 +21,7 @@ impl Painter {
     ) {
         // Skip the first element, it's the "all" element
         if app_state.converted_data.cpu_data.len() > 1 {
-            let cpu_data: &[ConvertedCpuData] = &app_state.converted_data.cpu_data[1..];
+            let cpu_data: &[CpuWidgetData] = &app_state.converted_data.cpu_data[1..];
 
             // This is a bit complicated, but basically, we want to draw SOME number
             // of columns to draw all CPUs.  Ideally, as well, we want to not have
