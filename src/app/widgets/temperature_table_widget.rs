@@ -6,7 +6,7 @@ use tui::widgets::Row;
 
 use crate::{
     app::{data_harvester::temperature::TemperatureType, AppConfigFields},
-    components::data_table::{DataColumn, DataTable, DataTableProps, Styling, ToDataRow},
+    components::data_table::{DataColumn, DataTable, DataTableProps, ToDataRow},
     utils::gen_util::truncate_text,
 };
 
@@ -29,9 +29,7 @@ impl TempWidgetData {
 }
 
 impl ToDataRow for TempWidgetData {
-    fn to_data_row<'a>(
-        &'a self, columns: &[DataColumn], _styling: &Styling, _index: usize,
-    ) -> Row<'a> {
+    fn to_data_row<'a>(&'a self, columns: &[DataColumn]) -> Row<'a> {
         Row::new(vec![
             truncate_text(
                 self.sensor.clone().into_cow_str(),
@@ -76,6 +74,7 @@ impl TempWidgetState {
             left_to_right: false,
             is_basic: config.use_basic_mode,
             show_table_scroll_position: config.show_table_scroll_position,
+            show_current_entry_when_unfocused: false,
         };
 
         Self {

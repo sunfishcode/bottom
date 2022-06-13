@@ -129,25 +129,32 @@ impl Painter {
                 .iter()
                 .enumerate()
                 .rev()
-                .map(|(itx, cpu)| {
-                    let style = if show_avg_cpu && itx == AVG_POSITION {
-                        self.colours.avg_colour_style
-                    } else if itx == ALL_POSITION {
-                        self.colours.all_colour_style
-                    } else {
-                        let offset_position = itx - 1; // Because of the all position
-                        self.colours.cpu_colour_styles[(offset_position - show_avg_offset)
-                            % self.colours.cpu_colour_styles.len()]
-                    };
+                .filter_map(|(itx, cpu)| {
+                    match cpu {
+                        CpuWidgetData::All => None,
+                        CpuWidgetData::Entry { data, .. } => {
+                            let style = if show_avg_cpu && itx == AVG_POSITION {
+                                self.colours.avg_colour_style
+                            } else if itx == ALL_POSITION {
+                                self.colours.all_colour_style
+                            } else {
+                                let offset_position = itx - 1; // Because of the all position
+                                self.colours.cpu_colour_styles[(offset_position - show_avg_offset)
+                                    % self.colours.cpu_colour_styles.len()]
+                            };
 
-                    GraphData {
-                        points: &cpu.cpu_data[..],
-                        style,
-                        name: None,
+                            Some(GraphData {
+                                points: &data[..],
+                                style,
+                                name: None,
+                            })
+                        }
                     }
                 })
                 .collect::<Vec<_>>()
-        } else if let Some(cpu) = cpu_data.get(current_scroll_position) {
+        } else if let Some(CpuWidgetData::Entry { data, .. }) =
+            cpu_data.get(current_scroll_position)
+        {
             let style = if show_avg_cpu && current_scroll_position == AVG_POSITION {
                 self.colours.avg_colour_style
             } else {
@@ -157,7 +164,7 @@ impl Painter {
             };
 
             vec![GraphData {
-                points: &cpu.cpu_data[..],
+                points: &data[..],
                 style,
                 name: None,
             }]

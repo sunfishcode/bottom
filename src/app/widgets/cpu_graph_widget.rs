@@ -6,22 +6,24 @@ use tui::widgets::Row;
 
 use crate::{
     app::{data_harvester::cpu::CpuDataType, AppConfigFields},
-    components::data_table::{DataColumn, DataTable, DataTableProps, Styling, ToDataRow},
-    data_conversion::{CpuWidgetData, CpuWidgetEntry},
+    components::data_table::{DataColumn, DataTable, DataTableProps, ToDataRow},
+    data_conversion::CpuWidgetData,
     utils::gen_util::truncate_text,
 };
 
 impl ToDataRow for CpuWidgetData {
-    fn to_data_row<'a>(
-        &'a self, columns: &[DataColumn], styling: &Styling, index: usize,
-    ) -> Row<'a> {
-        match self.entry_type {
-            CpuWidgetEntry::All => Row::new(vec![truncate_text(
+    fn to_data_row<'a>(&'a self, columns: &[DataColumn]) -> Row<'a> {
+        match self {
+            CpuWidgetData::All => Row::new(vec![truncate_text(
                 "All".into(),
                 columns[0].calculated_width.into(),
             )]),
-            CpuWidgetEntry::Entry(entry_type, val) => {
-                let entry_text = match entry_type {
+            CpuWidgetData::Entry {
+                data_type,
+                data: _,
+                last_entry,
+            } => {
+                let entry_text = match data_type {
                     CpuDataType::Avg => {
                         truncate_text("AVG".into(), columns[0].calculated_width.into())
                     }
@@ -39,7 +41,7 @@ impl ToDataRow for CpuWidgetData {
                 Row::new(vec![
                     entry_text,
                     truncate_text(
-                        format!("{:.0}%", val.round()).into(),
+                        format!("{:.0}%", last_entry.round()).into(),
                         columns[1].calculated_width.into(),
                     ),
                 ])
@@ -78,6 +80,7 @@ impl CpuWidgetState {
             left_to_right: false,
             is_basic: false,
             show_table_scroll_position: false, // TODO: Should this be possible?
+            show_current_entry_when_unfocused: true,
         };
 
         CpuWidgetState {

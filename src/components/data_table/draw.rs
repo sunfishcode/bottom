@@ -175,9 +175,9 @@ impl<RowType: ToDataRow> DataTable<RowType> {
                         self.state.current_scroll_position.saturating_sub(start),
                     ));
 
-                    data[start..end].iter().enumerate().map(move |(itx, row)| {
-                        row.to_data_row(columns, &draw_info.styling, start + itx)
-                    })
+                    data[start..end]
+                        .iter()
+                        .map(move |row| row.to_data_row(columns))
                 };
 
                 let headers = build_header(columns)
@@ -185,7 +185,9 @@ impl<RowType: ToDataRow> DataTable<RowType> {
                     .bottom_margin(table_gap);
 
                 let widget = {
-                    let highlight_style = if draw_info.is_on_widget() {
+                    let highlight_style = if draw_info.is_on_widget()
+                        || self.props.show_current_entry_when_unfocused
+                    {
                         draw_info.styling.highlighted_text_style
                     } else {
                         draw_info.styling.text_style

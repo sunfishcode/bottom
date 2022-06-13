@@ -15,4 +15,7 @@ pub struct DataTableProps {
 
     /// Whether to show the table scroll position.
     pub show_table_scroll_position: bool,
+
+    /// Whether to show the current entry as highlighted when not focused.
+    pub show_current_entry_when_unfocused: bool,
 }
