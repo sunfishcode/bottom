@@ -1,7 +1,7 @@
 use tui::style::Style;
 
 #[derive(Default)]
-pub struct Styling {
+pub struct TableStyling {
     pub header_style: Style,
     pub border_style: Style,
     pub highlighted_border_style: Style,

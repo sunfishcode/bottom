@@ -15,7 +15,7 @@ use crate::{
         widgets::{CpuWidgetState, DiskTableWidget, ProcWidget, ProcWidgetMode, TempWidgetState},
         *,
     },
-    canvas::ColourScheme,
+    canvas::{canvas_colours::CanvasColours, ColourScheme},
     constants::*,
     units::data_units::DataUnit,
     utils::error::{self, BottomError},
@@ -251,7 +251,7 @@ pub struct IgnoreList {
 pub fn build_app(
     matches: &clap::ArgMatches, config: &mut Config, widget_layout: &BottomLayout,
     default_widget_id: u64, default_widget_type_option: &Option<BottomWidgetType>,
-    config_path: Option<PathBuf>,
+    config_path: Option<PathBuf>, colours: &CanvasColours,
 ) -> Result<App> {
     use BottomWidgetType::*;
     let autohide_time = get_autohide_time(matches, config);
@@ -371,6 +371,7 @@ pub fn build_app(
                                     &app_config_fields,
                                     default_time_value,
                                     autohide_timer,
+                                    colours
                                 ),
                             );
                         }

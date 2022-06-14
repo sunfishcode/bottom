@@ -4,7 +4,7 @@ use crate::{
     app::{layout_manager::WidgetDirection, widgets::CpuWidgetState, App},
     canvas::{drawing_utils::should_hide_x_label, Painter},
     components::{
-        data_table::{DrawInfo, SelectionState, Styling},
+        data_table::{DrawInfo, SelectionState, TableStyling},
         time_graph::{GraphData, TimeGraph},
     },
     data_conversion::CpuWidgetData,
@@ -238,7 +238,7 @@ impl Painter {
             let is_on_widget = widget_id == app_state.current_widget.widget_id;
 
             // FIXME: This should be moved elsewhere.
-            let styling = Styling {
+            let styling = TableStyling {
                 header_style: self.colours.table_header_style,
                 border_style: self.colours.border_style,
                 highlighted_border_style: self.colours.highlighted_border_style,

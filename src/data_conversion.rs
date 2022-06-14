@@ -179,6 +179,7 @@ impl ConvertedData {
             }
         }
 
+        // TODO: Can probably avoid data deduplication - store the shift + data + original once.
         // Now push all the data.
         for (itx, cpu) in &mut self.cpu_data.iter_mut().skip(1).enumerate() {
             match cpu {

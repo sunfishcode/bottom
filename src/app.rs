@@ -2639,7 +2639,7 @@ impl App {
                                         .get_widget_state(self.current_widget.widget_id - 1)
                                     {
                                         if let Some(visual_index) =
-                                            cpu_widget_state.table.state.table_state.selected()
+                                            cpu_widget_state.table.tui_selected()
                                         {
                                             self.change_cpu_legend_position(
                                                 offset_clicked_entry as i64 - visual_index as i64,
@@ -2653,7 +2653,7 @@ impl App {
                                         .get_widget_state(self.current_widget.widget_id)
                                     {
                                         if let Some(visual_index) =
-                                            temp_widget_state.table.state.table_state.selected()
+                                            temp_widget_state.table.tui_selected()
                                         {
                                             self.change_temp_position(
                                                 offset_clicked_entry as i64 - visual_index as i64,
@@ -2667,7 +2667,7 @@ impl App {
                                         .get_widget_state(self.current_widget.widget_id)
                                     {
                                         if let Some(visual_index) =
-                                            disk_widget_state.table.state.table_state.selected()
+                                            disk_widget_state.table.tui_selected()
                                         {
                                             self.change_disk_position(
                                                 offset_clicked_entry as i64 - visual_index as i64,
