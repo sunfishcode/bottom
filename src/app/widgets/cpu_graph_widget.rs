@@ -25,6 +25,7 @@ pub struct CpuWidgetInner {
 
 impl DataTableInner<CpuWidgetData> for CpuWidgetInner {
     fn to_data_row<'a>(&self, data: &'a CpuWidgetData, columns: &[DataTableColumn]) -> Row<'a> {
+        // TODO: Adjust based on column widths
         match data {
             CpuWidgetData::All => Row::new(vec![truncate_text(
                 "All".into(),

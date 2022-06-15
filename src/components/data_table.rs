@@ -39,6 +39,17 @@ pub trait DataTableInner<DataType> {
 
     /// Returns the desired column widths in light of having seen data.
     fn column_widths(&self, data: &[DataType]) -> Vec<u16>;
+
+    /// Constructs the table header.
+    fn build_header(&self, columns: &[DataTableColumn]) -> Row<'_> {
+        Row::new(columns.iter().filter_map(|c| {
+            if c.calculated_width == 0 {
+                None
+            } else {
+                Some(truncate_text(c.header.clone(), c.calculated_width.into()))
+            }
+        }))
+    }
 }
 
 /// A [`DataTable`] is a component that displays data in a tabular form.
@@ -202,7 +213,9 @@ impl<DataType, T: DataTableInner<DataType>> DataTable<DataType, T> {
                         .map(|row| self.inner.to_data_row(row, columns))
                 };
 
-                let headers = Self::build_header(columns)
+                let headers = self
+                    .inner
+                    .build_header(columns)
                     .style(draw_info.styling.header_style)
                     .bottom_margin(table_gap);
 
@@ -251,17 +264,6 @@ impl<DataType, T: DataTableInner<DataType>> DataTable<DataType, T> {
                 f.render_widget(table, margined_draw_loc);
             }
         }
-    }
-
-    /// Constructs the table header.
-    fn build_header(columns: &[DataTableColumn]) -> Row<'_> {
-        Row::new(columns.iter().filter_map(|c| {
-            if c.calculated_width == 0 {
-                None
-            } else {
-                Some(truncate_text(c.header.clone(), c.calculated_width.into()))
-            }
-        }))
     }
 }
 
