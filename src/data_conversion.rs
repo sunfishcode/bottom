@@ -12,6 +12,7 @@ use crate::{app::AxisScaling, units::data_units::DataUnit, Pid};
 
 use fxhash::FxHashMap;
 use kstring::KString;
+use tui::style::Style;
 
 #[derive(Default, Debug)]
 pub struct ConvertedBatteryData {
@@ -62,7 +63,7 @@ pub struct ConvertedNetworkData {
 }
 
 #[derive(Clone, Debug)]
-pub enum CpuWidgetData {
+pub enum CpuWidgetDataType {
     All,
     Entry {
         data_type: CpuDataType,
@@ -70,6 +71,20 @@ pub enum CpuWidgetData {
         data: Vec<Point>,
         last_entry: f64,
     },
+}
+
+pub struct CpuWidgetData {
+    pub data: CpuWidgetDataType,
+    pub style: Style,
+}
+
+impl CpuWidgetData {
+    pub fn new(data: CpuWidgetDataType) -> Self {
+        Self {
+            data,
+            style: Style::default(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -147,15 +162,18 @@ impl ConvertedData {
         if let Some((_time, data)) = &current_data.timed_data_vec.last() {
             if data.cpu_data.len() + 1 != self.cpu_data.len() {
                 self.cpu_data = Vec::with_capacity(data.cpu_data.len() + 1);
-                self.cpu_data.push(CpuWidgetData::All);
+                self.cpu_data
+                    .push(CpuWidgetData::new(CpuWidgetDataType::All));
                 self.cpu_data.extend(
                     data.cpu_data
                         .iter()
                         .zip(&current_data.cpu_harvest)
-                        .map(|(cpu_usage, data)| CpuWidgetData::Entry {
-                            data_type: data.data_type,
-                            data: vec![],
-                            last_entry: *cpu_usage,
+                        .map(|(cpu_usage, data)| {
+                            CpuWidgetData::new(CpuWidgetDataType::Entry {
+                                data_type: data.data_type,
+                                data: vec![],
+                                last_entry: *cpu_usage,
+                            })
                         })
                         .collect::<Vec<CpuWidgetData>>(),
                 );
@@ -164,9 +182,9 @@ impl ConvertedData {
                     .iter_mut()
                     .skip(1)
                     .zip(&data.cpu_data)
-                    .for_each(|(cpu, cpu_usage)| match cpu {
-                        CpuWidgetData::All => unreachable!(),
-                        CpuWidgetData::Entry {
+                    .for_each(|(cpu, cpu_usage)| match &mut cpu.data {
+                        CpuWidgetDataType::All => unreachable!(),
+                        CpuWidgetDataType::Entry {
                             data_type: _,
                             data,
                             last_entry,
@@ -182,9 +200,9 @@ impl ConvertedData {
         // TODO: Can probably avoid data deduplication - store the shift + data + original once.
         // Now push all the data.
         for (itx, cpu) in &mut self.cpu_data.iter_mut().skip(1).enumerate() {
-            match cpu {
-                CpuWidgetData::All => unreachable!(),
-                CpuWidgetData::Entry {
+            match &mut cpu.data {
+                CpuWidgetDataType::All => unreachable!(),
+                CpuWidgetDataType::Entry {
                     data_type: _,
                     data,
                     last_entry: _,

@@ -1,6 +1,6 @@
 use std::{
-    borrow::Cow,
     cmp::{max, min},
+    fmt::Display,
 };
 
 /// A bound on the width of a column.
@@ -8,9 +8,6 @@ use std::{
 pub enum ColumnWidthBounds {
     /// A width of this type is either as long as `min`, but can otherwise shrink and grow up to a point.
     Soft {
-        /// The minimum amount before giving up and hiding.
-        min_width: u16,
-
         /// The desired, calculated width. Take this if possible as the base starting width.
         desired: u16,
 
@@ -21,26 +18,21 @@ pub enum ColumnWidthBounds {
 
     /// A width of this type is either as long as specified, or does not appear at all.
     Hard(u16),
-
-    /// Always uses the width of the header.
-    HeaderWidth,
 }
 
 impl ColumnWidthBounds {
-    pub const fn soft(name: &'static str, max_percentage: Option<f32>) -> ColumnWidthBounds {
-        let len = name.len() as u16;
+    pub const fn soft(max_percentage: Option<f32>) -> ColumnWidthBounds {
         ColumnWidthBounds::Soft {
-            min_width: len,
-            desired: len,
+            desired: 0,
             max_percentage,
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct DataTableColumn {
+pub struct DataTableColumn<T: Display> {
     /// The header value of the column.
-    pub header: Cow<'static, str>, // FIXME: May want to make this customizable
+    pub header: T,
 
     /// A restriction on this column's width.
     pub width_bounds: ColumnWidthBounds,
@@ -52,29 +44,20 @@ pub struct DataTableColumn {
     pub is_hidden: bool,
 }
 
-impl DataTableColumn {
-    pub const fn hard(name: &'static str, width: u16) -> Self {
+impl<T: Display> DataTableColumn<T> {
+    pub const fn hard(header: T, width: u16) -> Self {
         Self {
-            header: Cow::Borrowed(name),
+            header,
             width_bounds: ColumnWidthBounds::Hard(width),
             calculated_width: 0,
             is_hidden: false,
         }
     }
 
-    pub const fn soft(name: &'static str, max_percentage: Option<f32>) -> Self {
+    pub const fn soft(header: T, max_percentage: Option<f32>) -> Self {
         Self {
-            header: Cow::Borrowed(name),
-            width_bounds: ColumnWidthBounds::soft(name, max_percentage),
-            calculated_width: 0,
-            is_hidden: false,
-        }
-    }
-
-    pub const fn header(name: &'static str) -> Self {
-        Self {
-            header: Cow::Borrowed(name),
-            width_bounds: ColumnWidthBounds::HeaderWidth,
+            header,
+            width_bounds: ColumnWidthBounds::soft(max_percentage),
             calculated_width: 0,
             is_hidden: false,
         }
@@ -92,7 +75,7 @@ pub trait CalculateColumnWidth {
     fn calculate_column_widths(&mut self, total_width: u16, left_to_right: bool);
 }
 
-impl CalculateColumnWidth for [DataTableColumn] {
+impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
     fn calculate_column_widths(&mut self, total_width: u16, left_to_right: bool) {
         use itertools::Either;
 
@@ -115,11 +98,10 @@ impl CalculateColumnWidth for [DataTableColumn] {
 
             match &column.width_bounds {
                 ColumnWidthBounds::Soft {
-                    min_width,
                     desired,
                     max_percentage,
                 } => {
-                    let min_width = *min_width;
+                    let min_width = column.header.to_string().len() as u16;
                     if min_width > total_width_left {
                         skip_iter = true;
                         continue;
@@ -141,18 +123,6 @@ impl CalculateColumnWidth for [DataTableColumn] {
                     } else if space_taken > 0 {
                         total_width_left = total_width_left.saturating_sub(space_taken + 1);
                         column.calculated_width = space_taken;
-                        num_columns += 1;
-                    }
-                }
-                ColumnWidthBounds::HeaderWidth => {
-                    let width = column.header.len() as u16;
-                    let min_width = width;
-
-                    if min_width > total_width_left || min_width == 0 {
-                        skip_iter = true;
-                    } else if min_width > 0 {
-                        total_width_left = total_width_left.saturating_sub(min_width + 1);
-                        column.calculated_width = min_width;
                         num_columns += 1;
                     }
                 }

@@ -15,7 +15,7 @@ pub enum SortOrder {
     Descending,
 }
 
-pub struct SortableDataTableState<DataType, ColumnType, T>
+pub struct SortableDataTableState<DataType, ColumnType>
 where
     ColumnType: SortsRow<DataType>,
     T: DataTableInner<DataType>,
@@ -34,7 +34,7 @@ where
     y_loc: u16,
 
     /// The inner table representation.
-    table: DataTable<DataType, T>,
+    table: DataTable<DataType>,
 }
 
 impl<DataType, ColumnType, T> SortableDataTableState<DataType, ColumnType, T>

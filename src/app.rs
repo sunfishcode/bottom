@@ -1944,7 +1944,7 @@ impl App {
                         .temp_state
                         .get_mut_widget_state(self.current_widget.widget_id)
                     {
-                        temp_widget_state.table.set_scroll_first();
+                        temp_widget_state.table.set_first();
                     }
                 }
                 BottomWidgetType::Disk => {
@@ -1952,7 +1952,7 @@ impl App {
                         .disk_state
                         .get_mut_widget_state(self.current_widget.widget_id)
                     {
-                        disk_widget_state.table.set_scroll_first();
+                        disk_widget_state.table.set_first();
                     }
                 }
                 BottomWidgetType::CpuLegend => {
@@ -1960,7 +1960,7 @@ impl App {
                         .cpu_state
                         .get_mut_widget_state(self.current_widget.widget_id - 1)
                     {
-                        cpu_widget_state.table.set_scroll_first();
+                        cpu_widget_state.table.set_first();
                     }
                 }
 
@@ -2004,7 +2004,7 @@ impl App {
                     {
                         temp_widget_state
                             .table
-                            .set_scroll_last(self.converted_data.temp_data.len());
+                            .set_last(self.converted_data.temp_data.len());
                     }
                 }
                 BottomWidgetType::Disk => {
@@ -2015,7 +2015,7 @@ impl App {
                         if !self.converted_data.disk_data.is_empty() {
                             disk_widget_state
                                 .table
-                                .set_scroll_last(self.converted_data.disk_data.len());
+                                .set_last(self.converted_data.disk_data.len());
                         }
                     }
                 }
@@ -2026,7 +2026,7 @@ impl App {
                     {
                         cpu_widget_state
                             .table
-                            .set_scroll_last(self.converted_data.cpu_data.len());
+                            .set_last(self.converted_data.cpu_data.len());
                     }
                 }
                 _ => {}
@@ -2086,7 +2086,7 @@ impl App {
         {
             cpu_widget_state
                 .table
-                .update_scroll_position(num_to_change_by, self.converted_data.cpu_data.len());
+                .increment_position(num_to_change_by, self.converted_data.cpu_data.len());
         }
     }
 
@@ -2112,7 +2112,7 @@ impl App {
         {
             temp_widget_state
                 .table
-                .update_scroll_position(num_to_change_by, self.converted_data.temp_data.len());
+                .increment_position(num_to_change_by, self.converted_data.temp_data.len());
         }
     }
 
@@ -2124,7 +2124,7 @@ impl App {
         {
             disk_widget_state
                 .table
-                .update_scroll_position(num_to_change_by, self.converted_data.disk_data.len());
+                .increment_position(num_to_change_by, self.converted_data.disk_data.len());
         }
     }
 

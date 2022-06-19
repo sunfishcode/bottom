@@ -311,17 +311,6 @@ pub fn update_data(app: &mut App) {
         }
     }
 
-    // FIXME: I should really test that this works with different adds/removes, it was broken for a long time.
-    for disk in app.disk_state.widget_states.values_mut() {
-        disk.table
-            .update_num_entries(app.converted_data.disk_data.len());
-    }
-
-    for temp in app.temp_state.widget_states.values_mut() {
-        temp.table
-            .update_num_entries(app.converted_data.temp_data.len());
-    }
-
     // FIXME: Make this less terrible.
     if app.cpu_state.force_update.is_some() {
         app.converted_data

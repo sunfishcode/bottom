@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{fmt::Display, time::Instant};
 
 use concat_string::concat_string;
 
@@ -7,8 +7,10 @@ use tui::{style::Style, widgets::Row};
 use crate::{
     app::{data_harvester::cpu::CpuDataType, AppConfigFields},
     canvas::canvas_colours::CanvasColours,
-    components::data_table::{DataTable, DataTableColumn, DataTableInner, DataTableProps},
-    data_conversion::CpuWidgetData,
+    components::data_table::{
+        DataTable, DataTableColumn, DataTableProps, DataTableStyling, ToDataRow,
+    },
+    data_conversion::{CpuWidgetData, CpuWidgetDataType},
     utils::gen_util::truncate_text,
 };
 
@@ -19,29 +21,39 @@ pub struct CpuWidgetStyling {
     pub entries: Vec<Style>,
 }
 
-pub struct CpuWidgetInner {
-    styling: CpuWidgetStyling,
+impl CpuWidgetStyling {
+    fn from_colours(colours: &CanvasColours) -> Self {
+        let entries = if colours.cpu_colour_styles.is_empty() {
+            vec![Style::default()]
+        } else {
+            colours.cpu_colour_styles.clone()
+        };
+
+        Self {
+            all: colours.all_colour_style,
+            avg: colours.avg_colour_style,
+            entries,
+        }
+    }
 }
 
-impl DataTableInner<CpuWidgetData> for CpuWidgetInner {
-    fn to_data_row<'a>(&self, data: &'a CpuWidgetData, columns: &[DataTableColumn]) -> Row<'a> {
-        // TODO: Adjust based on column widths
-        match data {
-            CpuWidgetData::All => Row::new(vec![truncate_text(
+impl ToDataRow for CpuWidgetData {
+    fn to_data_row<'a, T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'a> {
+        // FIXME: Adjust based on column widths
+        match &self.data {
+            CpuWidgetDataType::All => Row::new(vec![truncate_text(
                 "All".into(),
                 columns[0].calculated_width.into(),
-            )])
-            .style(self.styling.all),
-            CpuWidgetData::Entry {
+            )]),
+            CpuWidgetDataType::Entry {
                 data_type,
                 data: _,
                 last_entry,
             } => {
-                let (entry_text, style) = match data_type {
-                    CpuDataType::Avg => (
-                        truncate_text("AVG".into(), columns[0].calculated_width.into()),
-                        self.styling.avg,
-                    ),
+                let entry_text = match data_type {
+                    CpuDataType::Avg => {
+                        truncate_text("AVG".into(), columns[0].calculated_width.into())
+                    }
                     CpuDataType::Cpu(index) => {
                         let index_str = index.to_string();
                         let width = columns[0].calculated_width;
@@ -51,10 +63,7 @@ impl DataTableInner<CpuWidgetData> for CpuWidgetInner {
                             truncate_text(concat_string!("CPU", index_str).into(), width.into())
                         };
 
-                        (
-                            text,
-                            self.styling.entries[index % self.styling.entries.len()], // Theoretically never empty by initialization.
-                        )
+                        text
                     }
                 };
 
@@ -65,12 +74,12 @@ impl DataTableInner<CpuWidgetData> for CpuWidgetInner {
                         columns[1].calculated_width.into(),
                     ),
                 ])
-                .style(style)
             }
+            .style(self.style),
         }
     }
 
-    fn column_widths(&self, _data: &[CpuWidgetData]) -> Vec<u16>
+    fn column_widths(_data: &[CpuWidgetData]) -> Vec<u16>
     where
         Self: Sized,
     {
@@ -83,7 +92,8 @@ pub struct CpuWidgetState {
     pub is_legend_hidden: bool,
     pub show_avg: bool,
     pub autohide_timer: Option<Instant>,
-    pub table: DataTable<CpuWidgetData, CpuWidgetInner>,
+    pub table: DataTable<CpuWidgetData>,
+    pub styling: CpuWidgetStyling,
 }
 
 impl CpuWidgetState {
@@ -91,7 +101,7 @@ impl CpuWidgetState {
         config: &AppConfigFields, current_display_time: u64, autohide_timer: Option<Instant>,
         colours: &CanvasColours,
     ) -> Self {
-        const COLUMNS: [DataTableColumn; 2] = [
+        const COLUMNS: [DataTableColumn<&str>; 2] = [
             DataTableColumn::soft("CPU", Some(0.5)),
             DataTableColumn::soft("Use%", Some(0.5)),
         ];
@@ -105,26 +115,22 @@ impl CpuWidgetState {
             show_current_entry_when_unfocused: true,
         };
 
+        let styling = DataTableStyling {
+            header_style: colours.table_header_style,
+            border_style: colours.border_style,
+            highlighted_border_style: colours.highlighted_border_style,
+            text_style: colours.text_style,
+            highlighted_text_style: colours.currently_selected_text_style,
+            title_style: colours.widget_title_style,
+        };
+
         CpuWidgetState {
             current_display_time,
             is_legend_hidden: false,
             show_avg: config.show_average_cpu,
             autohide_timer,
-            table: DataTable::new(
-                COLUMNS,
-                props,
-                CpuWidgetInner {
-                    styling: CpuWidgetStyling {
-                        all: colours.all_colour_style,
-                        avg: colours.avg_colour_style,
-                        entries: if colours.cpu_colour_styles.is_empty() {
-                            vec![Style::default()]
-                        } else {
-                            colours.cpu_colour_styles.clone()
-                        },
-                    },
-                },
-            ),
+            table: DataTable::new(COLUMNS, props, styling),
+            styling: CpuWidgetStyling::from_colours(colours),
         }
     }
 }

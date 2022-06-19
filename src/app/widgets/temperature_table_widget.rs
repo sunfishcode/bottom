@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::{cmp::max, fmt::Display};
 
 use concat_string::concat_string;
 use kstring::KString;
@@ -6,7 +6,10 @@ use tui::widgets::Row;
 
 use crate::{
     app::{data_harvester::temperature::TemperatureType, AppConfigFields},
-    components::data_table::{DataTable, DataTableColumn, DataTableInner, DataTableProps},
+    canvas::canvas_colours::CanvasColours,
+    components::data_table::{
+        DataTable, DataTableColumn, DataTableProps, DataTableStyling, ToDataRow,
+    },
     utils::gen_util::truncate_text,
 };
 
@@ -28,23 +31,21 @@ impl TempWidgetData {
     }
 }
 
-pub struct TempWidgetInner;
-
-impl DataTableInner<TempWidgetData> for TempWidgetInner {
-    fn to_data_row<'a>(&self, data: &'a TempWidgetData, columns: &[DataTableColumn]) -> Row<'a> {
+impl ToDataRow for TempWidgetData {
+    fn to_data_row<'a, T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'a> {
         Row::new(vec![
             truncate_text(
-                data.sensor.clone().into_cow_str(),
+                self.sensor.clone().into_cow_str(),
                 columns[0].calculated_width.into(),
             ),
             truncate_text(
-                data.temperature().into_cow_str(),
+                self.temperature().into_cow_str(),
                 columns[1].calculated_width.into(),
             ),
         ])
     }
 
-    fn column_widths(&self, data: &[TempWidgetData]) -> Vec<u16>
+    fn column_widths(data: &[TempWidgetData]) -> Vec<u16>
     where
         Self: Sized,
     {
@@ -60,12 +61,12 @@ impl DataTableInner<TempWidgetData> for TempWidgetInner {
 }
 
 pub struct TempWidgetState {
-    pub table: DataTable<TempWidgetData, TempWidgetInner>,
+    pub table: DataTable<TempWidgetData>,
 }
 
 impl TempWidgetState {
-    pub fn new(config: &AppConfigFields) -> Self {
-        const COLUMNS: [DataTableColumn; 2] = [
+    pub fn new(config: &AppConfigFields, colours: &CanvasColours) -> Self {
+        const COLUMNS: [DataTableColumn<&str>; 2] = [
             DataTableColumn::soft("Sensor", Some(0.8)),
             DataTableColumn::soft("Temp", None),
         ];
@@ -79,8 +80,17 @@ impl TempWidgetState {
             show_current_entry_when_unfocused: false,
         };
 
+        let styling = DataTableStyling {
+            header_style: colours.table_header_style,
+            border_style: colours.border_style,
+            highlighted_border_style: colours.highlighted_border_style,
+            text_style: colours.text_style,
+            highlighted_text_style: colours.currently_selected_text_style,
+            title_style: colours.widget_title_style,
+        };
+
         Self {
-            table: DataTable::new(COLUMNS, props, TempWidgetInner {}),
+            table: DataTable::new(COLUMNS, props, styling),
         }
     }
 }
