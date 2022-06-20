@@ -1,4 +1,4 @@
-use std::{cmp::max, fmt::Display};
+use std::cmp::max;
 
 use concat_string::concat_string;
 use kstring::KString;
@@ -32,16 +32,10 @@ impl TempWidgetData {
 }
 
 impl ToDataRow for TempWidgetData {
-    fn to_data_row<'a, T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'a> {
+    fn to_data_row<'a>(&self, widths: &[u16]) -> Row<'a> {
         Row::new(vec![
-            truncate_text(
-                self.sensor.clone().into_cow_str(),
-                columns[0].calculated_width.into(),
-            ),
-            truncate_text(
-                self.temperature().into_cow_str(),
-                columns[1].calculated_width.into(),
-            ),
+            truncate_text(self.sensor.clone().into_cow_str(), widths[0].into()),
+            truncate_text(self.temperature().into_cow_str(), widths[1].into()),
         ])
     }
 

@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Instant};
+use std::time::Instant;
 
 use concat_string::concat_string;
 
@@ -38,29 +38,24 @@ impl CpuWidgetStyling {
 }
 
 impl ToDataRow for CpuWidgetData {
-    fn to_data_row<'a, T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'a> {
+    fn to_data_row<'a>(&self, widths: &[u16]) -> Row<'a> {
         // FIXME: Adjust based on column widths
         match &self.data {
-            CpuWidgetDataType::All => Row::new(vec![truncate_text(
-                "All".into(),
-                columns[0].calculated_width.into(),
-            )]),
+            CpuWidgetDataType::All => Row::new(vec![truncate_text("All".into(), widths[0].into())]),
             CpuWidgetDataType::Entry {
                 data_type,
                 data: _,
                 last_entry,
             } => {
                 let entry_text = match data_type {
-                    CpuDataType::Avg => {
-                        truncate_text("AVG".into(), columns[0].calculated_width.into())
-                    }
+                    CpuDataType::Avg => truncate_text("AVG".into(), widths[0].into()),
                     CpuDataType::Cpu(index) => {
                         let index_str = index.to_string();
-                        let width = columns[0].calculated_width;
+                        let width = widths[0].into();
                         let text = if width < 5 {
-                            truncate_text(index_str.into(), width.into())
+                            truncate_text(index_str.into(), width)
                         } else {
-                            truncate_text(concat_string!("CPU", index_str).into(), width.into())
+                            truncate_text(concat_string!("CPU", index_str).into(), width)
                         };
 
                         text
@@ -71,7 +66,7 @@ impl ToDataRow for CpuWidgetData {
                     entry_text,
                     truncate_text(
                         format!("{:.0}%", last_entry.round()).into(),
-                        columns[1].calculated_width.into(),
+                        widths[1].into(),
                     ),
                 ])
             }

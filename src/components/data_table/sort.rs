@@ -1,4 +1,4 @@
-use std::{fmt::Display, marker::PhantomData, ops::Range};
+use std::{fmt::Display, marker::PhantomData};
 
 use itertools::Itertools;
 use tui::{layout::Rect, widgets::Row};
@@ -11,15 +11,12 @@ use super::{
 
 pub trait SortType {
     /// Constructs the table header.
-    fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'_> {
-        Row::new(columns.iter().filter_map(|c| {
-            if c.calculated_width == 0 {
+    fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>], widths: &[u16]) -> Row<'_> {
+        Row::new(columns.iter().zip(widths).filter_map(|(c, &width)| {
+            if width == 0 {
                 None
             } else {
-                Some(truncate_text(
-                    c.header.to_string().into(),
-                    c.calculated_width.into(),
-                ))
+                Some(truncate_text(c.header.to_string().into(), width.into()))
             }
         }))
     }
@@ -44,10 +41,6 @@ impl<DataType: ToDataRow, T: Display> DataTable<DataType, T, Unsortable> {
 }
 
 pub struct Sortable {
-    /// The "y location" of the header row. Since all headers share the same y-location we
-    /// just set it once here.
-    y_loc: u16,
-
     /// The currently selected sort index.
     pub sort_index: usize,
 
@@ -57,7 +50,11 @@ pub struct Sortable {
     /// Sort column information.
     pub sort_col_info: Vec<SortColumnInfo>,
 }
-impl SortType for Sortable {}
+impl SortType for Sortable {
+    // fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>], widths: &[u16]) -> Row<'_> {
+    //     todo!()
+    // }
+}
 
 pub type SortDataTable<DataType, T> = DataTable<DataType, T, Sortable>;
 
@@ -68,9 +65,6 @@ pub trait SortsRow<DataType> {
 
 #[derive(Default)]
 pub struct SortColumnInfo {
-    /// The "x locations" of the column.
-    pub range: Range<u16>,
-
     /// A shortcut, if set.
     pub shortcut: Option<char>,
 
@@ -121,7 +115,6 @@ impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T
         for g in given_columns {
             columns.push(g.inner);
             sort_col_info.push(SortColumnInfo {
-                range: Range::default(),
                 shortcut: g.shortcut,
                 default_order: g.default_order,
             });
@@ -133,7 +126,6 @@ impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T
             props: props.inner,
             styling,
             sort_type: Sortable {
-                y_loc: 0,
                 sort_index: props.sort_index,
                 order: props.order,
                 sort_col_info,
@@ -155,58 +147,13 @@ impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T
         }
     }
 
-    /// Sets the new draw locations for the table headers.
-    ///
-    /// **Note:** The function assumes the ranges will create a *sorted* list with the length
-    /// equal to the number of columns - in debug mode, the program will assert all this, but
-    /// it will **not** do so in release mode!
-    pub fn update_header_locations(&mut self, draw_loc: Rect, row_widths: &[u16]) {
-        let mut start = draw_loc.x;
-
-        debug_assert_eq!(
-            row_widths.len(),
-            self.sort_type.sort_col_info.len(),
-            "row width and sort column length should be equal"
-        );
-
-        row_widths
-            .iter()
-            .zip(self.sort_type.sort_col_info.iter_mut())
-            .for_each(|(width, column)| {
-                let range_start = start;
-                let range_end = start + width + 1; // +1 for the gap b/w cols.
-                start = range_end;
-
-                column.range = range_start..range_end;
-            });
-
-        debug_assert!(
-            self.sort_type
-                .sort_col_info
-                .iter()
-                .all(|a| { a.range.start <= a.range.end }),
-            "all sort column ranges should have a start <= end"
-        );
-
-        debug_assert!(
-            self.sort_type
-                .sort_col_info
-                .iter()
-                .tuple_windows()
-                .all(|(a, b)| { b.range.start >= a.range.end }),
-            "sort column ranges should be sorted"
-        );
-
-        self.sort_type.y_loc = draw_loc.y;
-    }
-
     /// Given some `x` and `y`, if possible, select the corresponding column or toggle the column if already selected,
     /// and otherwise do nothing.
     ///
     /// If there was some update, the corresponding column type will be returned. If nothing happens, [`None`] is
     /// returned.
     pub fn try_select_location(&mut self, x: u16, y: u16) -> Option<usize> {
-        if self.sort_type.y_loc == y {
+        if self.state.inner_rect.height > 1 && self.state.inner_rect.y == y {
             if let Some(index) = self.get_range(x) {
                 self.set_sort_index(index);
                 Some(self.sort_type.sort_index)
@@ -235,20 +182,22 @@ impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T
 
     /// Given a `needle` coordinate, select the corresponding index and value.
     fn get_range(&self, needle: u16) -> Option<usize> {
-        match self
-            .sort_type
-            .sort_col_info
-            .binary_search_by_key(&needle, |col| col.range.start)
-        {
+        let mut start = self.state.inner_rect.x;
+        let range = self
+            .state
+            .calculated_widths
+            .iter()
+            .map(|width| {
+                let entry_start = start;
+                start += width + 1; // +1 for the gap b/w cols.
+
+                entry_start
+            })
+            .collect_vec();
+
+        match range.binary_search(&needle) {
             Ok(index) => Some(index),
             Err(index) => index.checked_sub(1),
         }
-        .and_then(|index| {
-            if needle < self.sort_type.sort_col_info[index].range.end {
-                Some(index)
-            } else {
-                None
-            }
-        })
     }
 }

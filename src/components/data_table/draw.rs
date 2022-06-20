@@ -150,6 +150,7 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
 
         let (inner_width, inner_height) = {
             let inner_rect = block.inner(margined_draw_loc);
+            self.state.inner_rect = inner_rect;
             (inner_rect.width, inner_rect.height)
         };
 
@@ -171,7 +172,8 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
                         ColumnWidthBounds::Hard(_) => {}
                     });
 
-                self.columns
+                self.state.calculated_widths = self
+                    .columns
                     .calculate_column_widths(inner_width, self.props.left_to_right);
 
                 // Update draw loc in widget map
@@ -205,12 +207,12 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
 
                     data[start..end]
                         .iter()
-                        .map(|row| DataType::to_data_row(row, columns))
+                        .map(|row| DataType::to_data_row(row, &self.state.calculated_widths))
                 };
 
                 let headers = self
                     .sort_type
-                    .build_header(columns)
+                    .build_header(columns, &self.state.calculated_widths)
                     .style(self.styling.header_style)
                     .bottom_margin(table_gap);
 
@@ -237,13 +239,15 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
                 let table_state = &mut self.state.table_state;
                 f.render_stateful_widget(
                     widget.widths(
-                        &(columns
+                        &(self
+                            .state
+                            .calculated_widths
                             .iter()
-                            .filter_map(|c| {
-                                if c.calculated_width == 0 {
+                            .filter_map(|&width| {
+                                if width == 0 {
                                     None
                                 } else {
-                                    Some(Constraint::Length(c.calculated_width))
+                                    Some(Constraint::Length(width))
                                 }
                             })
                             .collect::<Vec<_>>()),

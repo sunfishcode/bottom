@@ -1,4 +1,4 @@
-use std::{cmp::max, fmt::Display};
+use std::cmp::max;
 
 use kstring::KString;
 use tui::widgets::Row;
@@ -55,36 +55,15 @@ impl DiskWidgetData {
 }
 
 impl ToDataRow for DiskWidgetData {
-    fn to_data_row<'a, T: Display>(&self, columns: &[DataTableColumn<T>]) -> Row<'a> {
+    fn to_data_row<'a>(&self, widths: &[u16]) -> Row<'a> {
         Row::new(vec![
-            truncate_text(
-                self.name.clone().into_cow_str(),
-                columns[0].calculated_width.into(),
-            ),
-            truncate_text(
-                self.mount_point.clone().into_cow_str(),
-                columns[1].calculated_width.into(),
-            ),
-            truncate_text(
-                self.free_space().into_cow_str(),
-                columns[2].calculated_width.into(),
-            ),
-            truncate_text(
-                self.total_space().into_cow_str(),
-                columns[3].calculated_width.into(),
-            ),
-            truncate_text(
-                self.usage().into_cow_str(),
-                columns[4].calculated_width.into(),
-            ),
-            truncate_text(
-                self.io_read.clone().into_cow_str(),
-                columns[5].calculated_width.into(),
-            ),
-            truncate_text(
-                self.io_write.clone().into_cow_str(),
-                columns[6].calculated_width.into(),
-            ),
+            truncate_text(self.name.clone().into_cow_str(), widths[0].into()),
+            truncate_text(self.mount_point.clone().into_cow_str(), widths[1].into()),
+            truncate_text(self.free_space().into_cow_str(), widths[2].into()),
+            truncate_text(self.total_space().into_cow_str(), widths[3].into()),
+            truncate_text(self.usage().into_cow_str(), widths[4].into()),
+            truncate_text(self.io_read.clone().into_cow_str(), widths[5].into()),
+            truncate_text(self.io_write.clone().into_cow_str(), widths[6].into()),
         ])
     }
 

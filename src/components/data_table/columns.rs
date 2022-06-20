@@ -29,6 +29,24 @@ impl ColumnWidthBounds {
     }
 }
 
+struct ColInfo<T> {
+    inner: T,
+    bounds: ColumnWidthBounds,
+}
+
+enum ColumnType<T> {
+    Single(ColInfo<T>),
+    Switcher {
+        cols: Vec<ColInfo<T>>,
+        selected: usize,
+    },
+}
+
+struct Column<T> {
+    col: ColumnType<T>,
+    is_hidden: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct DataTableColumn<T: Display> {
     /// The header value of the column.
@@ -36,9 +54,6 @@ pub struct DataTableColumn<T: Display> {
 
     /// A restriction on this column's width.
     pub width_bounds: ColumnWidthBounds,
-
-    /// The calculated width of the column.
-    pub calculated_width: u16,
 
     /// Marks that this column is currently "hidden", and should *always* be skipped.
     pub is_hidden: bool,
@@ -49,7 +64,6 @@ impl<T: Display> DataTableColumn<T> {
         Self {
             header,
             width_bounds: ColumnWidthBounds::Hard(width),
-            calculated_width: 0,
             is_hidden: false,
         }
     }
@@ -58,7 +72,6 @@ impl<T: Display> DataTableColumn<T> {
         Self {
             header,
             width_bounds: ColumnWidthBounds::soft(max_percentage),
-            calculated_width: 0,
             is_hidden: false,
         }
     }
@@ -72,27 +85,24 @@ pub trait CalculateColumnWidth {
     ///   false.
     ///
     /// **NOTE:** Trailing 0's may break tui-rs, remember to filter them out later!
-    fn calculate_column_widths(&mut self, total_width: u16, left_to_right: bool);
+    fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16>;
 }
 
 impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
-    fn calculate_column_widths(&mut self, total_width: u16, left_to_right: bool) {
+    fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16> {
         use itertools::Either;
 
         let mut total_width_left = total_width;
-
+        let mut calculated_widths = vec![0; self.len()];
         let columns = if left_to_right {
-            Either::Left(self.iter_mut())
+            Either::Left(self.iter().zip(calculated_widths.iter_mut()))
         } else {
-            Either::Right(self.iter_mut().rev())
+            Either::Right(self.iter().zip(calculated_widths.iter_mut()).rev())
         };
 
         let mut num_columns = 0;
-        let mut skip_iter = false;
-        for column in columns {
-            column.calculated_width = 0;
-
-            if column.is_hidden || skip_iter {
+        for (column, calculated_width) in columns {
+            if column.is_hidden {
                 continue;
             }
 
@@ -103,8 +113,7 @@ impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
                 } => {
                     let min_width = column.header.to_string().len() as u16;
                     if min_width > total_width_left {
-                        skip_iter = true;
-                        continue;
+                        break;
                     }
 
                     let soft_limit = max(
@@ -119,10 +128,10 @@ impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
                     let space_taken = min(min(soft_limit, *desired), total_width_left);
 
                     if min_width > space_taken || min_width == 0 {
-                        skip_iter = true;
+                        break;
                     } else if space_taken > 0 {
                         total_width_left = total_width_left.saturating_sub(space_taken + 1);
-                        column.calculated_width = space_taken;
+                        *calculated_width = space_taken;
                         num_columns += 1;
                     }
                 }
@@ -130,10 +139,10 @@ impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
                     let min_width = *width;
 
                     if min_width > total_width_left || min_width == 0 {
-                        skip_iter = true;
+                        break;
                     } else if min_width > 0 {
                         total_width_left = total_width_left.saturating_sub(min_width + 1);
-                        column.calculated_width = min_width;
+                        *calculated_width = min_width;
                         num_columns += 1;
                     }
                 }
@@ -146,22 +155,24 @@ impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
             let amount_per_slot = total_width_left / num_dist;
             total_width_left %= num_dist;
 
-            for column in self.iter_mut() {
+            for width in calculated_widths.iter_mut() {
                 if num_dist == 0 {
                     break;
                 }
 
-                if column.calculated_width > 0 {
+                if *width > 0 {
                     if total_width_left > 0 {
-                        column.calculated_width += amount_per_slot + 1;
+                        *width += amount_per_slot + 1;
                         total_width_left -= 1;
                     } else {
-                        column.calculated_width += amount_per_slot;
+                        *width += amount_per_slot;
                     }
 
                     num_dist -= 1;
                 }
             }
         }
+
+        calculated_widths
     }
 }

@@ -116,7 +116,7 @@ pub struct ConvertedData {
 
 impl ConvertedData {
     // TODO: Can probably heavily reduce this step to avoid clones.
-    pub fn ingest_disk(&mut self, data: &DataCollection) {
+    pub fn ingest_disk_data(&mut self, data: &DataCollection) {
         self.disk_data.clear();
 
         data.disk_harvest
@@ -137,7 +137,7 @@ impl ConvertedData {
         self.disk_data.shrink_to_fit();
     }
 
-    pub fn ingest_temp(&mut self, data: &DataCollection, temperature_type: TemperatureType) {
+    pub fn ingest_temp_data(&mut self, data: &DataCollection, temperature_type: TemperatureType) {
         self.temp_data.clear();
 
         data.temp_harvest.iter().for_each(|temp_harvest| {
@@ -151,7 +151,7 @@ impl ConvertedData {
         self.temp_data.shrink_to_fit();
     }
 
-    pub fn convert_cpu_data_points(&mut self, current_data: &DataCollection) {
+    pub fn ingest_cpu_data(&mut self, current_data: &DataCollection) {
         let current_time = if let Some(frozen_instant) = current_data.frozen_instant {
             frozen_instant
         } else {
@@ -197,7 +197,7 @@ impl ConvertedData {
             }
         }
 
-        // TODO: Can probably avoid data deduplication - store the shift + data + original once.
+        // TODO: [Opt] Can probably avoid data deduplication - store the shift + data + original once.
         // Now push all the data.
         for (itx, cpu) in &mut self.cpu_data.iter_mut().skip(1).enumerate() {
             match &mut cpu.data {

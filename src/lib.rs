@@ -313,8 +313,7 @@ pub fn update_data(app: &mut App) {
 
     // FIXME: Make this CPU force update less terrible.
     if app.cpu_state.force_update.is_some() {
-        app.converted_data
-            .convert_cpu_data_points(&app.data_collection);
+        app.converted_data.ingest_cpu_data(&app.data_collection);
         app.converted_data.load_avg_data = app.data_collection.load_avg_harvest;
         app.cpu_state.force_update = None;
     }

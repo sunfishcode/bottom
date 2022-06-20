@@ -1,4 +1,4 @@
-use tui::widgets::TableState;
+use tui::{layout::Rect, widgets::TableState};
 
 #[derive(Debug, Copy, Clone)]
 pub enum ScrollDirection {
@@ -26,8 +26,14 @@ pub struct DataTableState {
     /// The direction of the last attempted scroll.
     pub scroll_direction: ScrollDirection,
 
+    /// The calculated widths.
+    pub calculated_widths: Vec<u16>,
+
     /// tui-rs' internal table state.
     pub table_state: TableState,
+
+    /// The current inner [`Rect`].
+    pub inner_rect: Rect,
 }
 
 impl Default for DataTableState {
@@ -36,7 +42,9 @@ impl Default for DataTableState {
             display_start_index: 0,
             current_scroll_position: 0,
             scroll_direction: ScrollDirection::Down,
+            calculated_widths: vec![],
             table_state: TableState::default(),
+            inner_rect: Rect::default(),
         }
     }
 }
