@@ -311,7 +311,7 @@ pub fn update_data(app: &mut App) {
         }
     }
 
-    // FIXME: Make this less terrible.
+    // FIXME: Make this CPU force update less terrible.
     if app.cpu_state.force_update.is_some() {
         app.converted_data
             .convert_cpu_data_points(&app.data_collection);
