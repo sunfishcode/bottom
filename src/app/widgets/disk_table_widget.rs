@@ -6,9 +6,7 @@ use tui::widgets::Row;
 use crate::{
     app::AppConfigFields,
     canvas::canvas_colours::CanvasColours,
-    components::data_table::{
-        DataTable, DataTableColumn, DataTableProps, DataTableStyling, ToDataRow,
-    },
+    components::data_table::{Column, DataTable, DataTableProps, DataTableStyling, ToDataRow},
     utils::gen_util::{get_decimal_bytes, truncate_text},
 };
 
@@ -88,14 +86,14 @@ pub struct DiskTableWidget {
 
 impl DiskTableWidget {
     pub fn new(config: &AppConfigFields, colours: &CanvasColours) -> Self {
-        const COLUMNS: [DataTableColumn<&str>; 7] = [
-            DataTableColumn::soft("Disk", Some(0.2)),
-            DataTableColumn::soft("Mount", Some(0.2)),
-            DataTableColumn::hard("Used", 4),
-            DataTableColumn::hard("Free", 6),
-            DataTableColumn::hard("Total", 6),
-            DataTableColumn::hard("R/s", 7),
-            DataTableColumn::hard("W/s", 7),
+        const COLUMNS: [Column<&str>; 7] = [
+            Column::soft("Disk", Some(0.2)),
+            Column::soft("Mount", Some(0.2)),
+            Column::hard("Used", 4),
+            Column::hard("Free", 6),
+            Column::hard("Total", 6),
+            Column::hard("R/s", 7),
+            Column::hard("W/s", 7),
         ];
 
         let props = DataTableProps {

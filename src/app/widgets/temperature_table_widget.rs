@@ -7,9 +7,7 @@ use tui::widgets::Row;
 use crate::{
     app::{data_harvester::temperature::TemperatureType, AppConfigFields},
     canvas::canvas_colours::CanvasColours,
-    components::data_table::{
-        DataTable, DataTableColumn, DataTableProps, DataTableStyling, ToDataRow,
-    },
+    components::data_table::{Column, DataTable, DataTableProps, DataTableStyling, ToDataRow},
     utils::gen_util::truncate_text,
 };
 
@@ -60,9 +58,9 @@ pub struct TempWidgetState {
 
 impl TempWidgetState {
     pub fn new(config: &AppConfigFields, colours: &CanvasColours) -> Self {
-        const COLUMNS: [DataTableColumn<&str>; 2] = [
-            DataTableColumn::soft("Sensor", Some(0.8)),
-            DataTableColumn::soft("Temp", None),
+        const COLUMNS: [Column<&str>; 2] = [
+            Column::soft("Sensor", Some(0.8)),
+            Column::soft("Temp", None),
         ];
 
         let props = DataTableProps {

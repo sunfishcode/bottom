@@ -7,9 +7,7 @@ use tui::{style::Style, widgets::Row};
 use crate::{
     app::{data_harvester::cpu::CpuDataType, AppConfigFields},
     canvas::canvas_colours::CanvasColours,
-    components::data_table::{
-        DataTable, DataTableColumn, DataTableProps, DataTableStyling, ToDataRow,
-    },
+    components::data_table::{Column, DataTable, DataTableProps, DataTableStyling, ToDataRow},
     data_conversion::{CpuWidgetData, CpuWidgetDataType},
     utils::gen_util::truncate_text,
 };
@@ -96,9 +94,9 @@ impl CpuWidgetState {
         config: &AppConfigFields, current_display_time: u64, autohide_timer: Option<Instant>,
         colours: &CanvasColours,
     ) -> Self {
-        const COLUMNS: [DataTableColumn<&str>; 2] = [
-            DataTableColumn::soft("CPU", Some(0.5)),
-            DataTableColumn::soft("Use%", Some(0.5)),
+        const COLUMNS: [Column<&str>; 2] = [
+            Column::soft("CPU", Some(0.5)),
+            Column::soft("Use%", Some(0.5)),
         ];
 
         let props = DataTableProps {

@@ -1,22 +1,23 @@
-use std::{fmt::Display, marker::PhantomData};
+use std::{
+    fmt::{Display, Formatter},
+    marker::PhantomData,
+};
 
 use itertools::Itertools;
-use tui::{layout::Rect, widgets::Row};
+use tui::widgets::Row;
 
 use crate::{components::old_text_table::SortOrder, utils::gen_util::truncate_text};
 
-use super::{
-    DataTable, DataTableColumn, DataTableProps, DataTableState, DataTableStyling, ToDataRow,
-};
+use super::{Column, DataTable, DataTableProps, DataTableState, DataTableStyling, ToDataRow};
 
 pub trait SortType {
     /// Constructs the table header.
-    fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>], widths: &[u16]) -> Row<'_> {
+    fn build_header<T: Display>(&self, columns: &[Column<T>], widths: &[u16]) -> Row<'_> {
         Row::new(columns.iter().zip(widths).filter_map(|(c, &width)| {
             if width == 0 {
                 None
             } else {
-                Some(truncate_text(c.header.to_string().into(), width.into()))
+                Some(truncate_text(c.header_text().into(), width.into()))
             }
         }))
     }
@@ -26,7 +27,7 @@ pub struct Unsortable;
 impl SortType for Unsortable {}
 
 impl<DataType: ToDataRow, T: Display> DataTable<DataType, T, Unsortable> {
-    pub fn new<C: Into<Vec<DataTableColumn<T>>>>(
+    pub fn new<C: Into<Vec<Column<T>>>>(
         columns: C, props: DataTableProps, styling: DataTableStyling,
     ) -> Self {
         Self {
@@ -46,9 +47,6 @@ pub struct Sortable {
 
     /// The current sorting order.
     pub order: SortOrder,
-
-    /// Sort column information.
-    pub sort_col_info: Vec<SortColumnInfo>,
 }
 impl SortType for Sortable {
     // fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>], widths: &[u16]) -> Row<'_> {
@@ -72,14 +70,14 @@ pub struct SortColumnInfo {
     pub default_order: SortOrder,
 }
 
-pub struct SortDataTableColumn<T: Display> {
-    inner: DataTableColumn<T>,
+pub struct SortColumnState<T: Display> {
+    inner: T,
     shortcut: Option<char>,
     default_order: SortOrder,
 }
 
-impl<T: Display> SortDataTableColumn<T> {
-    pub fn new(inner: DataTableColumn<T>) -> Self {
+impl<T: Display> SortColumnState<T> {
+    pub fn new(inner: T) -> Self {
         Self {
             inner,
             shortcut: Default::default(),
@@ -98,45 +96,33 @@ impl<T: Display> SortDataTableColumn<T> {
     }
 }
 
+impl<T: Display> Display for SortColumnState<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
 pub struct SortDataTableProps {
     pub inner: DataTableProps,
     pub sort_index: usize,
     pub order: SortOrder,
 }
 
-impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T, Sortable> {
-    pub fn new_sortable<C: Into<Vec<SortDataTableColumn<T>>>>(
+impl<DataType: ToDataRow, T: Display> DataTable<DataType, SortColumnState<T>, Sortable> {
+    pub fn new_sortable<C: Into<Vec<Column<SortColumnState<T>>>>>(
         columns: C, props: SortDataTableProps, styling: DataTableStyling,
     ) -> Self {
-        let given_columns: Vec<_> = columns.into();
-        let mut columns = Vec::with_capacity(given_columns.len());
-        let mut sort_col_info = Vec::with_capacity(given_columns.len());
-
-        for g in given_columns {
-            columns.push(g.inner);
-            sort_col_info.push(SortColumnInfo {
-                shortcut: g.shortcut,
-                default_order: g.default_order,
-            });
-        }
-
         Self {
-            columns,
+            columns: columns.into(),
             state: DataTableState::default(),
             props: props.inner,
             styling,
             sort_type: Sortable {
                 sort_index: props.sort_index,
                 order: props.order,
-                sort_col_info,
             },
             _pd: PhantomData,
         }
-    }
-
-    /// Returns the header at `index`, if it exists.
-    pub fn get_header(&self, index: usize) -> Option<&T> {
-        self.columns.get(index).map(|col| &col.header)
     }
 
     /// Toggles the current sort order.
@@ -174,9 +160,9 @@ impl<DataType: ToDataRow, T: Display + SortsRow<DataType>> DataTable<DataType, T
     pub fn set_sort_index(&mut self, index: usize) {
         if self.sort_type.sort_index == index {
             self.toggle_order();
-        } else if let Some(col) = self.sort_type.sort_col_info.get(index) {
+        } else if let Some(col) = self.columns.get(index) {
             self.sort_type.sort_index = index;
-            self.sort_type.order = col.default_order;
+            self.sort_type.order = col.header().default_order;
         }
     }
 

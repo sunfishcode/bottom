@@ -31,7 +31,7 @@ pub use sort::*;
 ///   facilitate things like sorting based on a selected column, shortcut column selection support, mouse column
 ///   selection support, etc.
 pub struct DataTable<DataType: ToDataRow, T: Display = &'static str, S: SortType = Unsortable> {
-    pub columns: Vec<DataTableColumn<T>>,
+    pub columns: Vec<Column<T>>,
     pub state: DataTableState,
     pub props: DataTableProps,
     pub styling: DataTableStyling,

@@ -1,8 +1,4 @@
-use std::{
-    cmp::{max, min},
-    fmt::Display,
-    iter::once,
-};
+use std::{cmp::min, fmt::Display, iter::once};
 
 use concat_string::concat_string;
 use tui::{
@@ -19,7 +15,7 @@ use crate::{
     constants::{SIDE_BORDERS, TABLE_GAP_HEIGHT_LIMIT},
 };
 
-use super::{CalculateColumnWidth, ColumnWidthBounds, DataTable, SortType, ToDataRow};
+use super::{CalculateColumnWidth, DataTable, SortType, ToDataRow};
 
 pub enum SelectionState {
     NotSelected,
@@ -165,11 +161,8 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
                 self.columns
                     .iter_mut()
                     .zip(&col_widths)
-                    .for_each(|(column, width)| match &mut column.width_bounds {
-                        ColumnWidthBounds::Soft { desired, .. } => {
-                            *desired = max(column.header.to_string().len() as u16, *width);
-                        }
-                        ColumnWidthBounds::Hard(_) => {}
+                    .for_each(|(column, width)| {
+                        column.adjust_inner_width(*width);
                     });
 
                 self.state.calculated_widths = self

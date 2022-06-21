@@ -3,6 +3,8 @@ use std::{
     fmt::Display,
 };
 
+use anyhow::{bail, Result};
+
 /// A bound on the width of a column.
 #[derive(Clone, Copy, Debug)]
 pub enum ColumnWidthBounds {
@@ -20,60 +22,121 @@ pub enum ColumnWidthBounds {
     Hard(u16),
 }
 
-impl ColumnWidthBounds {
-    pub const fn soft(max_percentage: Option<f32>) -> ColumnWidthBounds {
-        ColumnWidthBounds::Soft {
-            desired: 0,
-            max_percentage,
+#[derive(Clone, Debug)]
+pub struct ColumnInfo<T: Display> {
+    /// The inner column header.
+    inner: T,
+
+    /// A restriction on this column's width.
+    bounds: ColumnWidthBounds,
+}
+
+impl<T: Display> ColumnInfo<T> {
+    pub const fn hard(inner: T, width: u16) -> Self {
+        Self {
+            inner,
+            bounds: ColumnWidthBounds::Hard(width),
+        }
+    }
+
+    pub const fn soft(inner: T, max_percentage: Option<f32>) -> Self {
+        Self {
+            inner,
+            bounds: ColumnWidthBounds::Soft {
+                desired: 0,
+                max_percentage,
+            },
         }
     }
 }
 
-struct ColInfo<T> {
-    inner: T,
-    bounds: ColumnWidthBounds,
+#[derive(Clone, Debug)]
+pub struct SwitcherCol<T: Display> {
+    cols: Vec<ColumnInfo<T>>,
+    selected: usize,
 }
 
-enum ColumnType<T> {
-    Single(ColInfo<T>),
-    Switcher {
-        cols: Vec<ColInfo<T>>,
-        selected: usize,
-    },
-}
-
-struct Column<T> {
-    col: ColumnType<T>,
-    is_hidden: bool,
+impl<T: Display> SwitcherCol<T> {
+    pub fn set_index(&mut self, new_index: usize) -> Result<()> {
+        if new_index < self.cols.len() {
+            self.selected = new_index;
+            Ok(())
+        } else {
+            bail!("index not in range")
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct DataTableColumn<T: Display> {
-    /// The header value of the column.
-    pub header: T,
+pub enum ColumnType<T: Display> {
+    Single(ColumnInfo<T>),
+    Switcher(SwitcherCol<T>),
+}
 
-    /// A restriction on this column's width.
-    pub width_bounds: ColumnWidthBounds,
+impl<T: Display> ColumnType<T> {
+    pub fn new(col: ColumnInfo<T>) -> Self {
+        Self::Single(col)
+    }
+
+    pub fn new_switcher(cols: Vec<ColumnInfo<T>>, index: usize) -> Self {
+        let selected = index.clamp(0, cols.len().saturating_sub(1));
+        Self::Switcher(SwitcherCol { cols, selected })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Column<T: Display> {
+    col: ColumnType<T>,
 
     /// Marks that this column is currently "hidden", and should *always* be skipped.
     pub is_hidden: bool,
 }
 
-impl<T: Display> DataTableColumn<T> {
-    pub const fn hard(header: T, width: u16) -> Self {
+impl<T: Display> Column<T> {
+    pub const fn hard(inner: T, width: u16) -> Self {
         Self {
-            header,
-            width_bounds: ColumnWidthBounds::Hard(width),
+            col: ColumnType::Single(ColumnInfo::hard(inner, width)),
             is_hidden: false,
         }
     }
 
-    pub const fn soft(header: T, max_percentage: Option<f32>) -> Self {
+    pub const fn soft(inner: T, max_percentage: Option<f32>) -> Self {
         Self {
-            header,
-            width_bounds: ColumnWidthBounds::soft(max_percentage),
+            col: ColumnType::Single(ColumnInfo::soft(inner, max_percentage)),
             is_hidden: false,
         }
+    }
+
+    pub fn bounds(&self) -> &ColumnWidthBounds {
+        match &self.col {
+            ColumnType::Single(col) => &col.bounds,
+            ColumnType::Switcher(SwitcherCol { cols, selected }) => &cols[*selected].bounds,
+        }
+    }
+
+    pub fn adjust_inner_width(&mut self, width: u16) {
+        let col = match &mut self.col {
+            ColumnType::Single(col) => col,
+            ColumnType::Switcher(SwitcherCol { cols, selected }) => &mut cols[*selected],
+        };
+
+        match &mut col.bounds {
+            ColumnWidthBounds::Soft { desired, .. } => {
+                *desired = max(col.inner.to_string().len() as u16, width);
+            }
+            ColumnWidthBounds::Hard(_) => {}
+        }
+    }
+
+    pub fn header(&self) -> &T {
+        match &self.col {
+            ColumnType::Single(col) => &col.inner,
+            ColumnType::Switcher(SwitcherCol { cols, selected }) => &cols[*selected].inner,
+        }
+    }
+
+    pub fn header_text(&self) -> String {
+        self.header().to_string()
     }
 }
 
@@ -88,7 +151,7 @@ pub trait CalculateColumnWidth {
     fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16>;
 }
 
-impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
+impl<T: Display> CalculateColumnWidth for [Column<T>] {
     fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16> {
         use itertools::Either;
 
@@ -106,12 +169,12 @@ impl<T: Display> CalculateColumnWidth for [DataTableColumn<T>] {
                 continue;
             }
 
-            match &column.width_bounds {
+            match column.bounds() {
                 ColumnWidthBounds::Soft {
                     desired,
                     max_percentage,
                 } => {
-                    let min_width = column.header.to_string().len() as u16;
+                    let min_width = column.header_text().len() as u16;
                     if min_width > total_width_left {
                         break;
                     }
