@@ -337,7 +337,7 @@ impl App {
 
             // If the sort is now open, move left. Otherwise, if the proc sort was selected, force move right.
             if pws.is_sort_open {
-                if let SortState::Sortable(st) = &pws.table_state.sort_state {
+                if let SortState::Sortable(st) = &pws.table.sort_state {
                     pws.sort_table_state.scroll_bar = 0;
                     pws.sort_table_state.current_scroll_position = st
                         .current_index
@@ -362,9 +362,7 @@ impl App {
                     };
 
                 if let Some(proc_widget_state) = self.proc_state.get_mut_widget_state(widget_id) {
-                    if let SortState::Sortable(state) =
-                        &mut proc_widget_state.table_state.sort_state
-                    {
+                    if let SortState::Sortable(state) = &mut proc_widget_state.table.sort_state {
                         state.toggle_order();
                         proc_widget_state.force_data_update();
                     }
@@ -1138,11 +1136,7 @@ impl App {
             .widget_states
             .get(&self.current_widget.widget_id)
         {
-            if let Some(table_row) = pws
-                .table_data
-                .data
-                .get(pws.table_state.current_scroll_position)
-            {
+            if let Some(table_row) = pws.table_data.data.get(pws.table.current_scroll_position) {
                 if let Some(col_value) = table_row.row().get(ProcWidget::PROC_NAME_OR_CMD) {
                     let val = col_value.main_text().to_string();
                     if pws.is_using_command() {
@@ -1926,8 +1920,8 @@ impl App {
                         .proc_state
                         .get_mut_widget_state(self.current_widget.widget_id)
                     {
-                        proc_widget_state.table_state.current_scroll_position = 0;
-                        proc_widget_state.table_state.scroll_direction = ScrollDirection::Up;
+                        proc_widget_state.table.current_scroll_position = 0;
+                        proc_widget_state.table.scroll_direction = ScrollDirection::Up;
                     }
                 }
                 BottomWidgetType::ProcSort => {
@@ -1982,9 +1976,9 @@ impl App {
                         .proc_state
                         .get_mut_widget_state(self.current_widget.widget_id)
                     {
-                        proc_widget_state.table_state.current_scroll_position =
+                        proc_widget_state.table.current_scroll_position =
                             proc_widget_state.table_data.data.len().saturating_sub(1);
-                        proc_widget_state.table_state.scroll_direction = ScrollDirection::Down;
+                        proc_widget_state.table.scroll_direction = ScrollDirection::Down;
                     }
                 }
                 BottomWidgetType::ProcSort => {
@@ -2097,7 +2091,7 @@ impl App {
             .get_mut_widget_state(self.current_widget.widget_id)
         {
             proc_widget_state
-                .table_state
+                .table
                 .update_position(num_to_change_by, proc_widget_state.table_data.data.len())
         } else {
             None
@@ -2587,7 +2581,7 @@ impl App {
                                         .get_widget_state(self.current_widget.widget_id)
                                     {
                                         if let Some(visual_index) =
-                                            proc_widget_state.table_state.table_state.selected()
+                                            proc_widget_state.table.table_state.selected()
                                         {
                                             // If in tree mode, also check to see if this click is on
                                             // the same entry as the already selected one - if it is,
@@ -2598,9 +2592,8 @@ impl App {
                                                 ProcWidgetMode::Tree { .. }
                                             );
 
-                                            let previous_scroll_position = proc_widget_state
-                                                .table_state
-                                                .current_scroll_position;
+                                            let previous_scroll_position =
+                                                proc_widget_state.table.current_scroll_position;
 
                                             let new_position = self.change_process_position(
                                                 offset_clicked_entry as i64 - visual_index as i64,
@@ -2687,7 +2680,7 @@ impl App {
                                         .get_mut_widget_state(self.current_widget.widget_id)
                                     {
                                         if let SortState::Sortable(st) =
-                                            &mut proc_widget_state.table_state.sort_state
+                                            &mut proc_widget_state.table.sort_state
                                         {
                                             if st.try_select_location(x, y).is_some() {
                                                 proc_widget_state.force_data_update();
