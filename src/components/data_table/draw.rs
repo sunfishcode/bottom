@@ -202,8 +202,9 @@ impl<DataType: ToDataRow, T: ColumnDisplay, S: SortType> DataTable<DataType, T, 
                         .map(|row| DataType::to_data_row(row, &self.state.calculated_widths))
                 };
 
-                let headers = columns
-                    .build_header(&self.state.calculated_widths)
+                let headers = self
+                    .sort_type
+                    .build_header(columns, &self.state.calculated_widths)
                     .style(self.styling.header_style)
                     .bottom_margin(table_gap);
 

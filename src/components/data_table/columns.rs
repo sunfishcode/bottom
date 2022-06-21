@@ -1,9 +1,6 @@
 use std::cmp::{max, min};
 
 use anyhow::{bail, Result};
-use tui::widgets::Row;
-
-use crate::utils::gen_util::truncate_text;
 
 /// A bound on the width of a column.
 #[derive(Clone, Copy, Debug)]
@@ -163,9 +160,6 @@ impl<T: ColumnDisplay> Column<T> {
 }
 
 pub trait DrawDataColumn {
-    /// Constructs the table header.
-    fn build_header(&self, widths: &[u16]) -> Row<'_>;
-
     /// Calculates widths for the columns of this table, given the current width when called.
     ///
     /// * `total_width` is the, well, total width available.
@@ -177,16 +171,6 @@ pub trait DrawDataColumn {
 }
 
 impl<T: ColumnDisplay> DrawDataColumn for [Column<T>] {
-    fn build_header(&self, widths: &[u16]) -> Row<'_> {
-        Row::new(self.iter().zip(widths).filter_map(|(c, &width)| {
-            if width == 0 {
-                None
-            } else {
-                Some(truncate_text(c.inner_header().into(), width.into()))
-            }
-        }))
-    }
-
     fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16> {
         use itertools::Either;
 

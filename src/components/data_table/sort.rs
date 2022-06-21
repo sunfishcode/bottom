@@ -1,14 +1,26 @@
 use std::marker::PhantomData;
 
 use itertools::Itertools;
+use tui::widgets::Row;
 
-use crate::components::old_text_table::SortOrder;
+use crate::{components::old_text_table::SortOrder, utils::gen_util::truncate_text};
 
 use super::{
     Column, ColumnDisplay, DataTable, DataTableProps, DataTableState, DataTableStyling, ToDataRow,
 };
 
-pub trait SortType {}
+pub trait SortType {
+    /// Constructs the table header.
+    fn build_header<T: ColumnDisplay>(&self, columns: &[Column<T>], widths: &[u16]) -> Row<'_> {
+        Row::new(columns.iter().zip(widths).filter_map(|(c, &width)| {
+            if width == 0 {
+                None
+            } else {
+                Some(truncate_text(c.inner_header().into(), width.into()))
+            }
+        }))
+    }
+}
 
 pub struct Unsortable;
 impl SortType for Unsortable {}
@@ -35,7 +47,36 @@ pub struct Sortable {
     /// The current sorting order.
     pub order: SortOrder,
 }
-impl SortType for Sortable {}
+impl SortType for Sortable {
+    fn build_header<T: ColumnDisplay>(&self, columns: &[Column<T>], widths: &[u16]) -> Row<'_> {
+        const UP_ARROW: &str = "▲";
+        const DOWN_ARROW: &str = "▼";
+
+        Row::new(
+            columns
+                .iter()
+                .zip(widths)
+                .enumerate()
+                .filter_map(|(index, (c, &width))| {
+                    if width == 0 {
+                        None
+                    } else if index == self.sort_index {
+                        let arrow = match self.order {
+                            SortOrder::Ascending => UP_ARROW,
+                            SortOrder::Descending => DOWN_ARROW,
+                        };
+
+                        Some(truncate_text(
+                            concat_string::concat_string!(c.inner_header(), arrow).into(),
+                            width.into(),
+                        ))
+                    } else {
+                        Some(truncate_text(c.inner_header().into(), width.into()))
+                    }
+                }),
+        )
+    }
+}
 
 pub type SortDataTable<DataType, T> = DataTable<DataType, T, Sortable>;
 
