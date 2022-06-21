@@ -21,6 +21,9 @@ use std::cmp::max;
 pub mod proc_widget_column;
 pub use proc_widget_column::*;
 
+pub mod proc_widget_data;
+pub use proc_widget_data::*;
+
 /// ProcessSearchState only deals with process' search's current settings and state.
 pub struct ProcessSearchState {
     pub search_state: AppSearchState,
@@ -65,6 +68,7 @@ pub struct ProcWidget {
     pub mode: ProcWidgetMode,
 
     pub proc_search: ProcessSearchState,
+    // pub table: DataTable<ProcWidgetData, ProcWidgetColumn, Sortable>,
     pub table: TableComponentState<ProcWidgetColumn>,
     pub sort_table_state: TableComponentState,
 

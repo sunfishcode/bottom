@@ -1,4 +1,4 @@
-use std::{cmp::min, fmt::Display, iter::once};
+use std::{cmp::min, iter::once};
 
 use concat_string::concat_string;
 use tui::{
@@ -15,7 +15,7 @@ use crate::{
     constants::{SIDE_BORDERS, TABLE_GAP_HEIGHT_LIMIT},
 };
 
-use super::{CalculateColumnWidth, DataTable, SortType, ToDataRow};
+use super::{ColumnDisplay, DataTable, DrawDataColumn, SortType, ToDataRow};
 
 pub enum SelectionState {
     NotSelected,
@@ -54,7 +54,7 @@ impl DrawInfo {
     }
 }
 
-impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
+impl<DataType: ToDataRow, T: ColumnDisplay, S: SortType> DataTable<DataType, T, S> {
     fn block<'a>(&self, draw_info: &'a DrawInfo, data_len: usize) -> Block<'a> {
         let border_style = match draw_info.selection_state {
             SelectionState::NotSelected => self.styling.border_style,
@@ -155,7 +155,6 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
         } else {
             // Calculate widths
             if draw_info.recalculate_column_widths {
-                // FIXME: This is currently kinda hardcoded in terms of calculations!
                 let col_widths = DataType::column_widths(data);
 
                 self.columns
@@ -203,9 +202,8 @@ impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
                         .map(|row| DataType::to_data_row(row, &self.state.calculated_widths))
                 };
 
-                let headers = self
-                    .sort_type
-                    .build_header(columns, &self.state.calculated_widths)
+                let headers = columns
+                    .build_header(&self.state.calculated_widths)
                     .style(self.styling.header_style)
                     .bottom_margin(table_gap);
 

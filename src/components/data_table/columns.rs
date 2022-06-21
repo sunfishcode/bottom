@@ -1,9 +1,9 @@
-use std::{
-    cmp::{max, min},
-    fmt::Display,
-};
+use std::cmp::{max, min};
 
 use anyhow::{bail, Result};
+use tui::widgets::Row;
+
+use crate::utils::gen_util::truncate_text;
 
 /// A bound on the width of a column.
 #[derive(Clone, Copy, Debug)]
@@ -22,8 +22,26 @@ pub enum ColumnWidthBounds {
     Hard(u16),
 }
 
+pub trait ColumnDisplay {
+    /// The "text" version of the column.
+    fn text(&self) -> String;
+
+    /// The actually displayed "header".
+    ///
+    /// The default implementation just uses [`ColumnDisplay::text`].
+    fn header(&self) -> String {
+        self.text()
+    }
+}
+
+impl ColumnDisplay for &str {
+    fn text(&self) -> String {
+        self.to_string()
+    }
+}
+
 #[derive(Clone, Debug)]
-pub struct ColumnInfo<T: Display> {
+pub struct ColumnInfo<T: ColumnDisplay> {
     /// The inner column header.
     inner: T,
 
@@ -31,7 +49,7 @@ pub struct ColumnInfo<T: Display> {
     bounds: ColumnWidthBounds,
 }
 
-impl<T: Display> ColumnInfo<T> {
+impl<T: ColumnDisplay> ColumnInfo<T> {
     pub const fn hard(inner: T, width: u16) -> Self {
         Self {
             inner,
@@ -51,12 +69,12 @@ impl<T: Display> ColumnInfo<T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct SwitcherCol<T: Display> {
+pub struct SwitcherCol<T: ColumnDisplay> {
     cols: Vec<ColumnInfo<T>>,
     selected: usize,
 }
 
-impl<T: Display> SwitcherCol<T> {
+impl<T: ColumnDisplay> SwitcherCol<T> {
     pub fn set_index(&mut self, new_index: usize) -> Result<()> {
         if new_index < self.cols.len() {
             self.selected = new_index;
@@ -68,12 +86,12 @@ impl<T: Display> SwitcherCol<T> {
 }
 
 #[derive(Clone, Debug)]
-pub enum ColumnType<T: Display> {
+pub enum ColumnType<T: ColumnDisplay> {
     Single(ColumnInfo<T>),
     Switcher(SwitcherCol<T>),
 }
 
-impl<T: Display> ColumnType<T> {
+impl<T: ColumnDisplay> ColumnType<T> {
     pub fn new(col: ColumnInfo<T>) -> Self {
         Self::Single(col)
     }
@@ -85,14 +103,14 @@ impl<T: Display> ColumnType<T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct Column<T: Display> {
+pub struct Column<T: ColumnDisplay> {
     col: ColumnType<T>,
 
     /// Marks that this column is currently "hidden", and should *always* be skipped.
     pub is_hidden: bool,
 }
 
-impl<T: Display> Column<T> {
+impl<T: ColumnDisplay> Column<T> {
     pub const fn hard(inner: T, width: u16) -> Self {
         Self {
             col: ColumnType::Single(ColumnInfo::hard(inner, width)),
@@ -122,25 +140,32 @@ impl<T: Display> Column<T> {
 
         match &mut col.bounds {
             ColumnWidthBounds::Soft { desired, .. } => {
-                *desired = max(col.inner.to_string().len() as u16, width);
+                *desired = max(col.inner.header().len() as u16, width);
             }
             ColumnWidthBounds::Hard(_) => {}
         }
     }
 
-    pub fn header(&self) -> &T {
+    pub fn inner(&self) -> &T {
         match &self.col {
             ColumnType::Single(col) => &col.inner,
             ColumnType::Switcher(SwitcherCol { cols, selected }) => &cols[*selected].inner,
         }
     }
 
-    pub fn header_text(&self) -> String {
-        self.header().to_string()
+    pub fn inner_text(&self) -> String {
+        self.inner().text()
+    }
+
+    pub fn inner_header(&self) -> String {
+        self.inner().header()
     }
 }
 
-pub trait CalculateColumnWidth {
+pub trait DrawDataColumn {
+    /// Constructs the table header.
+    fn build_header(&self, widths: &[u16]) -> Row<'_>;
+
     /// Calculates widths for the columns of this table, given the current width when called.
     ///
     /// * `total_width` is the, well, total width available.
@@ -151,7 +176,17 @@ pub trait CalculateColumnWidth {
     fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16>;
 }
 
-impl<T: Display> CalculateColumnWidth for [Column<T>] {
+impl<T: ColumnDisplay> DrawDataColumn for [Column<T>] {
+    fn build_header(&self, widths: &[u16]) -> Row<'_> {
+        Row::new(self.iter().zip(widths).filter_map(|(c, &width)| {
+            if width == 0 {
+                None
+            } else {
+                Some(truncate_text(c.inner_header().into(), width.into()))
+            }
+        }))
+    }
+
     fn calculate_column_widths(&self, total_width: u16, left_to_right: bool) -> Vec<u16> {
         use itertools::Either;
 
@@ -174,7 +209,7 @@ impl<T: Display> CalculateColumnWidth for [Column<T>] {
                     desired,
                     max_percentage,
                 } => {
-                    let min_width = column.header_text().len() as u16;
+                    let min_width = column.inner_header().len() as u16;
                     if min_width > total_width_left {
                         break;
                     }

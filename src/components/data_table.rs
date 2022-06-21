@@ -1,4 +1,4 @@
-use std::{convert::TryInto, fmt::Display, marker::PhantomData};
+use std::{convert::TryInto, marker::PhantomData};
 
 pub mod columns;
 pub use columns::*;
@@ -30,7 +30,8 @@ pub use sort::*;
 /// - [`Sortable`]: This table expects sorted data, and there are helper functions to
 ///   facilitate things like sorting based on a selected column, shortcut column selection support, mouse column
 ///   selection support, etc.
-pub struct DataTable<DataType: ToDataRow, T: Display = &'static str, S: SortType = Unsortable> {
+pub struct DataTable<DataType: ToDataRow, T: ColumnDisplay = &'static str, S: SortType = Unsortable>
+{
     pub columns: Vec<Column<T>>,
     pub state: DataTableState,
     pub props: DataTableProps,
@@ -39,7 +40,7 @@ pub struct DataTable<DataType: ToDataRow, T: Display = &'static str, S: SortType
     _pd: PhantomData<(DataType, S)>,
 }
 
-impl<DataType: ToDataRow, T: Display, S: SortType> DataTable<DataType, T, S> {
+impl<DataType: ToDataRow, T: ColumnDisplay, S: SortType> DataTable<DataType, T, S> {
     /// Sets the scroll position to the first value.
     pub fn set_first(&mut self) {
         self.state.current_scroll_position = 0;

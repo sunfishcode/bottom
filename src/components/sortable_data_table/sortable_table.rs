@@ -1,3 +1,5 @@
+// FIXME: Delete this!
+
 use concat_string::concat_string;
 use itertools::Itertools;
 use tui::{layout::Rect, widgets::Row};
@@ -47,8 +49,6 @@ where
         default_sort_index: usize, columns: Vec<SortColumn<DataType, ColumnType>>,
         props: DataTableProps, inner: T,
     ) -> anyhow::Result<Self> {
-        // FIXME: Remember to support adding shortcuts and the like.
-
         let order = columns
             .get(default_sort_index)
             .map(|col| col.info.default_order)

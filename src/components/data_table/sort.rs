@@ -1,32 +1,19 @@
-use std::{
-    fmt::{Display, Formatter},
-    marker::PhantomData,
-};
+use std::marker::PhantomData;
 
 use itertools::Itertools;
-use tui::widgets::Row;
 
-use crate::{components::old_text_table::SortOrder, utils::gen_util::truncate_text};
+use crate::components::old_text_table::SortOrder;
 
-use super::{Column, DataTable, DataTableProps, DataTableState, DataTableStyling, ToDataRow};
+use super::{
+    Column, ColumnDisplay, DataTable, DataTableProps, DataTableState, DataTableStyling, ToDataRow,
+};
 
-pub trait SortType {
-    /// Constructs the table header.
-    fn build_header<T: Display>(&self, columns: &[Column<T>], widths: &[u16]) -> Row<'_> {
-        Row::new(columns.iter().zip(widths).filter_map(|(c, &width)| {
-            if width == 0 {
-                None
-            } else {
-                Some(truncate_text(c.header_text().into(), width.into()))
-            }
-        }))
-    }
-}
+pub trait SortType {}
 
 pub struct Unsortable;
 impl SortType for Unsortable {}
 
-impl<DataType: ToDataRow, T: Display> DataTable<DataType, T, Unsortable> {
+impl<DataType: ToDataRow, T: ColumnDisplay> DataTable<DataType, T, Unsortable> {
     pub fn new<C: Into<Vec<Column<T>>>>(
         columns: C, props: DataTableProps, styling: DataTableStyling,
     ) -> Self {
@@ -48,11 +35,7 @@ pub struct Sortable {
     /// The current sorting order.
     pub order: SortOrder,
 }
-impl SortType for Sortable {
-    // fn build_header<T: Display>(&self, columns: &[DataTableColumn<T>], widths: &[u16]) -> Row<'_> {
-    //     todo!()
-    // }
-}
+impl SortType for Sortable {}
 
 pub type SortDataTable<DataType, T> = DataTable<DataType, T, Sortable>;
 
@@ -70,13 +53,13 @@ pub struct SortColumnInfo {
     pub default_order: SortOrder,
 }
 
-pub struct SortColumnState<T: Display> {
+pub struct SortColumnState<T: ColumnDisplay> {
     inner: T,
     shortcut: Option<char>,
     default_order: SortOrder,
 }
 
-impl<T: Display> SortColumnState<T> {
+impl<T: ColumnDisplay> SortColumnState<T> {
     pub fn new(inner: T) -> Self {
         Self {
             inner,
@@ -96,9 +79,15 @@ impl<T: Display> SortColumnState<T> {
     }
 }
 
-impl<T: Display> Display for SortColumnState<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
+impl<T: ColumnDisplay> ColumnDisplay for SortColumnState<T> {
+    fn text(&self) -> String {
+        self.inner.text()
+    }
+
+    fn header(&self) -> String {
+        let header = self.inner.header();
+        let shortcut = self.shortcut.map(|c| c.to_string()).unwrap_or_default();
+        concat_string::concat_string!(header, shortcut)
     }
 }
 
@@ -108,7 +97,7 @@ pub struct SortDataTableProps {
     pub order: SortOrder,
 }
 
-impl<DataType: ToDataRow, T: Display> DataTable<DataType, SortColumnState<T>, Sortable> {
+impl<DataType: ToDataRow, T: ColumnDisplay> DataTable<DataType, SortColumnState<T>, Sortable> {
     pub fn new_sortable<C: Into<Vec<Column<SortColumnState<T>>>>>(
         columns: C, props: SortDataTableProps, styling: DataTableStyling,
     ) -> Self {
@@ -162,7 +151,7 @@ impl<DataType: ToDataRow, T: Display> DataTable<DataType, SortColumnState<T>, So
             self.toggle_order();
         } else if let Some(col) = self.columns.get(index) {
             self.sort_type.sort_index = index;
-            self.sort_type.order = col.header().default_order;
+            self.sort_type.order = col.inner().default_order;
         }
     }
 
