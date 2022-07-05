@@ -1,11 +1,10 @@
 // Copied from SO: https://stackoverflow.com/a/55231715
 #[cfg(target_os = "windows")]
-use winapi::{
-    shared::{minwindef::DWORD, ntdef::HANDLE},
-    um::{
-        processthreadsapi::{OpenProcess, TerminateProcess},
-        winnt::{PROCESS_QUERY_INFORMATION, PROCESS_TERMINATE},
+use windows_sys::{
+    windows_sys::Win32::System::Threading::{
+        OpenProcess, TerminateProcess, PROCESS_QUERY_INFORMATION, PROCESS_TERMINATE,
     },
+    Win32::Foundation::HANDLE,
 };
 
 /// This file is meant to house (OS specific) implementations on how to kill processes.
@@ -18,7 +17,7 @@ struct Process(HANDLE);
 
 #[cfg(target_os = "windows")]
 impl Process {
-    fn open(pid: DWORD) -> Result<Process, String> {
+    fn open(pid: u32) -> Result<Process, String> {
         let pc = unsafe { OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_TERMINATE, 0, pid) };
         if pc.is_null() {
             return Err("OpenProcess".to_string());
@@ -70,7 +69,7 @@ pub fn kill_process_given_pid(pid: Pid, signal: usize) -> crate::utils::error::R
 #[cfg(target_os = "windows")]
 pub fn kill_process_given_pid(pid: Pid) -> crate::utils::error::Result<()> {
     {
-        let process = Process::open(pid as DWORD)?;
+        let process = Process::open(pid as u32)?;
         process.kill()?;
     }
 

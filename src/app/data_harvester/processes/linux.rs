@@ -17,7 +17,7 @@ use fxhash::{FxHashMap, FxHashSet};
 /// If it's equal or greater, then we instead refer to the command for the name.
 const MAX_STAT_NAME_LEN: usize = 15;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PrevProcDetails {
     pub total_read_bytes: u64,
     pub total_write_bytes: u64,
@@ -203,7 +203,7 @@ fn read_proc(
             (0, 0, 0, 0)
         };
 
-    let uid = process.owner;
+    let uid = process.uid()?;
 
     Ok((
         ProcessHarvest {
@@ -256,12 +256,10 @@ pub fn get_process_data(
 
                         if let Some(prev_proc_details) = pid_mapping.get_mut(&pid) {
                             let stat;
-                            let stat_live;
                             if fresh {
-                                stat = &prev_proc_details.process.stat;
+                                stat = prev_proc_details.process.stat().ok()?;
                             } else if let Ok(s) = prev_proc_details.process.stat() {
-                                stat_live = s;
-                                stat = &stat_live;
+                                stat = s;
                             } else {
                                 // Bail early.
                                 return None;
@@ -269,7 +267,7 @@ pub fn get_process_data(
 
                             if let Ok((process_harvest, new_process_times)) = read_proc(
                                 prev_proc_details,
-                                stat,
+                                &stat,
                                 cpu_usage,
                                 cpu_fraction,
                                 use_current_cpu_total,
